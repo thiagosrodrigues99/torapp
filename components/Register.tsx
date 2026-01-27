@@ -12,6 +12,7 @@ export const Register: React.FC<RegisterProps> = ({ onBack, onComplete }) => {
   const [gender, setGender] = useState('masculino');
   const [fullName, setFullName] = useState('');
   const [username, setUsername] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -43,6 +44,7 @@ export const Register: React.FC<RegisterProps> = ({ onBack, onComplete }) => {
           data: {
             full_name: fullName,
             username: username,
+            phone: phone,
             role: 'user',
           }
         }
@@ -167,6 +169,31 @@ export const Register: React.FC<RegisterProps> = ({ onBack, onComplete }) => {
                 > Feminino </button>
               </div>
             </div>
+
+            <label className="flex flex-col w-full mt-4">
+              <p className="text-slate-900 dark:text-white text-sm font-semibold leading-normal pb-2 uppercase tracking-wider">Telefone</p>
+              <input
+                value={phone}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, '');
+                  if (value.length <= 11) {
+                    let formatted = value;
+                    if (value.length > 2) {
+                      formatted = `(${value.slice(0, 2)}) ${value.slice(2)}`;
+                    }
+                    if (value.length > 7) {
+                      formatted = `(${value.slice(0, 2)}) ${value.slice(2, 7)}-${value.slice(7, 11)}`;
+                    }
+                    setPhone(formatted);
+                  }
+                }}
+                className="form-input flex w-full rounded-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary border border-slate-300 dark:border-input-border/20 bg-white dark:bg-input-bg h-14 placeholder:text-slate-400 dark:placeholder:text-white/40 px-4 text-base font-normal"
+                placeholder="(00) 00000-0000"
+                type="tel"
+                maxLength={15}
+                required
+              />
+            </label>
           </div>
 
           <div className="flex flex-col px-4 py-8 mt-auto mb-4">

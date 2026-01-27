@@ -70,7 +70,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, o
             <div className="relative">
               <input
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={(e) => setUsername(e.target.value.replace(/\s/g, ''))}
                 className="w-full h-14 bg-white dark:bg-surface-dark border border-slate-200 dark:border-gray-94/10 rounded-xl px-4 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
                 placeholder="Digite seu nome de usuário"
                 type="text"
