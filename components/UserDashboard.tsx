@@ -28,10 +28,17 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
   onStartChallenge
 }) => {
   const [waterAmount, setWaterAmount] = useState(1500); // Meta inicial de 1.5L
+  const [showGoalModal, setShowGoalModal] = useState(false);
   const waterGoal = 3000; // Meta de 3L
 
   const handleAddWater = () => {
-    setWaterAmount(prev => Math.min(waterGoal, prev + 250));
+    setWaterAmount(prev => {
+      const next = Math.min(waterGoal, prev + 250);
+      if (next >= waterGoal && prev < waterGoal) {
+        setShowGoalModal(true);
+      }
+      return next;
+    });
   };
 
   const waterPercentage = Math.round((waterAmount / waterGoal) * 100);
@@ -247,6 +254,37 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
 
       {/* Bottom Navigation */}
       <BottomNavigation currentTab={currentTab} onNavigate={onNavigate} />
+
+      {/* Hydration Goal Modal */}
+      {showGoalModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-surface-dark w-full max-w-sm rounded-[2.5rem] p-8 flex flex-col items-center text-center shadow-2xl border border-primary/20 animate-in zoom-in-95 duration-300">
+            <div className="relative mb-6">
+              <div className="absolute inset-0 bg-primary/20 rounded-full blur-2xl animate-pulse"></div>
+              <div className="relative size-24 bg-gradient-to-br from-primary to-primary/60 rounded-full flex items-center justify-center shadow-lg shadow-primary/30">
+                <Icon name="emoji_events" className="text-white text-5xl animate-bounce" />
+              </div>
+            </div>
+
+            <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase italic tracking-tight mb-2">Meta Batida!</h2>
+            <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-8">
+              Parabéns! Você atingiu sua meta de hidratação diária de <span className="text-primary font-bold">3.0L</span>. Seu corpo agradece!
+            </p>
+
+            <button
+              onClick={() => setShowGoalModal(false)}
+              className="w-full h-14 bg-primary hover:bg-primary/90 text-white font-bold text-lg rounded-2xl shadow-lg shadow-primary/20 active:scale-95 transition-all"
+            >
+              CONTINUAR
+            </button>
+
+            <div className="mt-4 flex items-center gap-1.5 opacity-50">
+              <Icon name="stars" className="text-primary text-xs" fill />
+              <p className="text-[10px] font-bold uppercase tracking-widest">+50 PONTOS GANHOS</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
