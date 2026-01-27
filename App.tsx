@@ -13,6 +13,7 @@ import { Community } from './components/Community';
 import { AllMedals } from './components/AllMedals';
 import { Login } from './components/Login';
 import { Register } from './components/Register';
+import { ForgotPassword } from './components/ForgotPassword';
 import { AdminDashboard } from './components/AdminDashboard';
 import { InfluencerDashboard } from './components/InfluencerDashboard';
 import { UserDashboard } from './components/UserDashboard';
@@ -22,6 +23,7 @@ import { supabase } from './lib/supabase';
 export default function App() {
   const [userRole, setUserRole] = useState<'user' | 'admin' | 'influencer' | null>(null);
   const [isRegistering, setIsRegistering] = useState(false);
+  const [isRecoveringPassword, setIsRecoveringPassword] = useState(false);
   const [view, setView] = useState<'dashboard' | 'workout-selection' | 'workout-execution' | 'edit-profile' | 'run-monitoring' | 'personal-trainer' | 'recipes-list' | 'recipe-details' | 'agenda' | 'community' | 'schedule-new' | 'all-medals'>('dashboard');
   const [loading, setLoading] = useState(true);
 
@@ -96,10 +98,18 @@ export default function App() {
         />
       );
     }
+    if (isRecoveringPassword) {
+      return (
+        <ForgotPassword
+          onBack={() => setIsRecoveringPassword(false)}
+        />
+      );
+    }
     return (
       <Login
         onLoginSuccess={(role) => setUserRole(role)}
         onRegisterClick={() => setIsRegistering(true)}
+        onForgotPasswordClick={() => setIsRecoveringPassword(true)}
       />
     );
   }

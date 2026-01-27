@@ -5,9 +5,10 @@ import { supabase } from '../lib/supabase';
 interface LoginProps {
   onLoginSuccess: (role: 'user' | 'admin' | 'influencer') => void;
   onRegisterClick?: () => void;
+  onForgotPasswordClick?: () => void;
 }
 
-export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick }) => {
+export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick, onForgotPasswordClick }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -100,7 +101,13 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onRegisterClick })
           </div>
 
           <div className="flex justify-end pr-1">
-            <a className="text-slate-500 dark:text-gray-94 hover:text-primary text-sm font-semibold transition-colors" href="#">Esqueceu a senha?</a>
+            <button
+              type="button"
+              onClick={onForgotPasswordClick}
+              className="text-slate-500 dark:text-gray-94 hover:text-primary text-sm font-semibold transition-colors"
+            >
+              Esqueceu a senha?
+            </button>
           </div>
 
           <div className="pt-4 space-y-3">
