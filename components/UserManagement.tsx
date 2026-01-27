@@ -1,7 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Icon } from './Icon';
 import { EditUser } from './EditUser';
 import { CreateUser } from './CreateUser';
+import { supabase } from '../lib/supabase';
+
+interface UserProfile {
+  id: string;
+  full_name: string;
+  username: string;
+  phone: string;
+  gender: string;
+  coupon: string;
+  status: string;
+  trial_days?: string;
+  created_at: string;
+  role: string;
+}
 
 interface UserManagementProps {
   onBack: () => void;
@@ -9,13 +23,74 @@ interface UserManagementProps {
 
 export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
   const [view, setView] = useState<'list' | 'edit' | 'create'>('list');
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<UserProfile[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
 
-  if (view === 'edit') {
-    return <EditUser onBack={() => setView('list')} />;
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const handleEdit = (user: UserProfile) => {
+    setSelectedUser(user);
+    setView('edit');
+  };
+
+  useEffect(() => {
+    filterUsers();
+  }, [searchTerm, statusFilter, users]);
+
+  const fetchUsers = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('role', 'user')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      if (data) {
+        setUsers(data);
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filterUsers = () => {
+    let result = users;
+
+    if (searchTerm) {
+      result = result.filter(u =>
+        u.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        u.phone?.includes(searchTerm) ||
+        u.username?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    if (statusFilter !== 'all') {
+      if (statusFilter === 'active') {
+        result = result.filter(u => u.status === 'Ativo');
+      } else if (statusFilter === 'trial') {
+        result = result.filter(u => u.status?.includes('Teste'));
+      }
+    }
+
+    setFilteredUsers(result);
+  };
+
+  if (view === 'edit' && selectedUser) {
+    return <EditUser user={selectedUser} onBack={() => { setView('list'); fetchUsers(); }} />;
   }
 
   if (view === 'create') {
-    return <CreateUser onBack={() => setView('list')} />;
+    return <CreateUser onBack={() => { setView('list'); fetchUsers(); }} />;
   }
 
   return (
@@ -23,7 +98,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
       <header className="sticky top-0 z-50 bg-[#141414]/90 backdrop-blur-md border-b border-white/10">
         <div className="flex items-center p-4 justify-between w-full max-w-7xl mx-auto">
           <div className="flex items-center gap-4">
-            <button 
+            <button
               onClick={onBack}
               className="flex items-center justify-center size-10 rounded-lg hover:bg-white/10 transition-colors"
             >
@@ -37,7 +112,7 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
               <span className="absolute top-2.5 right-2.5 size-2 bg-primary rounded-full border-2 border-background-dark"></span>
             </button>
             <div className="size-10 rounded-lg overflow-hidden border border-white/10">
-              <img alt="Admin" className="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDhGng9xzRyM8Qy6Mpdqo0RlfYeiGW2GwP3990lmt4X6-0hnSUT38SP9vC2GXyExjmdx1-2wzMeR0JlFXOCWQR6o7COgrzwHNj1J9vl-EDz8C0ae1WfGtHmRx8ZlGL2j3UvSgs5SQr81YI549gKY7-9cl_2QP6cinm4s4DxIG3DSDZsiCGx751iJ6aLDl3ChmV2fa8192PyOoZv7gZlH-iqxz1DB_gUxHirDIxNYgNymHNIG0-6EeCikSfjOtjWXAKNWAhbU9XYjzJt"/>
+              <img alt="Admin" className="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDhGng9xzRyM8Qy6Mpdqo0RlfYeiGW2GwP3990lmt4X6-0hnSUT38SP9vC2GXyExjmdx1-2wzMeR0JlFXOCWQR6o7COgrzwHNj1J9vl-EDz8C0ae1WfGtHmRx8ZlGL2j3UvSgs5SQr81YI549gKY7-9cl_2QP6cinm4s4DxIG3DSDZsiCGx751iJ6aLDl3ChmV2fa8192PyOoZv7gZlH-iqxz1DB_gUxHirDIxNYgNymHNIG0-6EeCikSfjOtjWXAKNWAhbU9XYjzJt" />
             </div>
           </div>
         </div>
@@ -46,13 +121,23 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
         <div className="flex flex-col md:flex-row gap-4 mb-8 items-center justify-between">
           <div className="relative w-full md:max-w-md">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">
-                <Icon name="search" />
+              <Icon name="search" />
             </span>
-            <input className="w-full bg-card-dark border-white/10 rounded-lg pl-10 pr-4 py-2.5 text-sm text-[#f0f0f0] focus:ring-primary focus:border-primary placeholder:text-slate-500 focus:outline-none" placeholder="Buscar aluno por nome ou telefone..." type="text"/>
+            <input
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-card-dark border-white/10 rounded-lg pl-10 pr-4 py-2.5 text-sm text-[#f0f0f0] focus:ring-primary focus:border-primary placeholder:text-slate-500 focus:outline-none"
+              placeholder="Buscar aluno por nome ou telefone..."
+              type="text"
+            />
           </div>
           <div className="flex items-center gap-3 w-full md:w-auto">
             <div className="relative w-full md:w-48">
-              <select className="w-full bg-card-dark border-white/10 rounded-lg pl-4 pr-10 py-2.5 text-sm text-[#f0f0f0] appearance-none focus:ring-primary focus:border-primary outline-none">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="w-full bg-card-dark border-white/10 rounded-lg pl-4 pr-10 py-2.5 text-sm text-[#f0f0f0] appearance-none focus:ring-primary focus:border-primary outline-none"
+              >
                 <option value="all">Todos os Status</option>
                 <option value="active">Plano Ativo</option>
                 <option value="trial">Teste Grátis</option>
@@ -61,12 +146,12 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                 <Icon name="expand_more" />
               </span>
             </div>
-            <button 
+            <button
               onClick={() => setView('create')}
               className="bg-primary hover:bg-primary/90 text-white px-6 py-2.5 rounded-lg font-bold text-sm transition-all flex items-center gap-2 shrink-0"
             >
-                <Icon name="person_add" className="text-sm" />
-                NOVO ALUNO
+              <Icon name="person_add" className="text-sm" />
+              NOVO ALUNO
             </button>
           </div>
         </div>
@@ -85,66 +170,45 @@ export const UserManagement: React.FC<UserManagementProps> = ({ onBack }) => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                <UserRow 
-                  name="Ricardo Oliveira" 
-                  phone="(11) 98765-4321" 
-                  gender="Masculino" 
-                  coupon="FITNESS10" 
-                  status="Ativo" 
-                  date="12/03/2024"
-                  avatar="https://lh3.googleusercontent.com/aida-public/AB6AXuAC91bxPLTFTF95R4eQWYI6DkLoc15DRn5-KFJHdnfvdvN01XbMoz9MH7PN1DeZ531IRb3zOFzePSHnhcAcs3V9TfOtlTdlepPPwC4sRp_jWWLT2ND85iDFPTezxXEBxnV9aPD0Mykl4DqKC0ROkdoTPVqnAMAX4GlZDKZOIpv_gyqa3_4-fTejjDyrCRFr9CI4bo7ArFTT8PC2hlRRx-LJdytgHenf9RHi2fxnBv7M1kdcpCp_LuCnTTi5A5JFi5YFXR0YowwPoL3T"
-                  onEdit={() => setView('edit')}
-                />
-                <UserRow 
-                  name="Juliana Mendes" 
-                  phone="(21) 99888-7766" 
-                  gender="Feminino" 
-                  coupon="—" 
-                  status="Teste Grátis"
-                  trialDays="3 Dias" 
-                  date="15/03/2024"
-                  avatar="https://lh3.googleusercontent.com/aida-public/AB6AXuB0VNbYm18jcLBI9LFuESK7872l-xcC-RhIDrL6arKkhtyhHudnkNx0OdrEbW9sKPuC99MI--JIWi2oSdIlhoAk6AuvzZXC3KE8M7mpqAf4MhyNQg-JQP3cRcaf3slrOkxKXWTjzARwsDNJLXc_S1fhtXMaxaxSVjQPPOFecyu0s9PGW0vV1t7csynlqPQeKXEVgE-dsU2ipve27S7HwnXdzLJPy71V_d6HXHp4K99HTVZflJFBsN54J0IhEZ9arjDumAMEA8gwMPuT"
-                  onEdit={() => setView('edit')}
-                />
-                <UserRow 
-                  name="Marcus Vinicius" 
-                  phone="(31) 97766-5544" 
-                  gender="Masculino" 
-                  coupon="MARCUS50" 
-                  status="Ativo" 
-                  date="01/02/2024"
-                  avatar="https://lh3.googleusercontent.com/aida-public/AB6AXuCvMFgs78wjVy2WE_Gx4zZghRAr06RTedjlV82FKHF8d-NsaGL8rp5XDswUTDe9Yc8u02OVRvrTeeHOt6Qa6dfJ7FlkVyBiVaADFl7LgTWS5iqZj4nE3cf07j5CS-wFV4zmPw_hjHX3YYsVfyICPIeaUaMJ8-YYbgvvV_GrT6YZgv2NrAVDmNNnqqdKVmm9ITtrs2EGF1I5WQ6NQlqgp0YoSpc55RFT8bBGI-ajiInASRDBO_GLQIDdOLLwDfPOaL-pbZqL3Sn9ivon"
-                  onEdit={() => setView('edit')}
-                />
-                <UserRow 
-                  name="Carla Santos" 
-                  phone="(11) 91122-3344" 
-                  gender="Feminino" 
-                  coupon="PROMO2024" 
-                  status="Ativo" 
-                  date="20/01/2024"
-                  avatar="https://lh3.googleusercontent.com/aida-public/AB6AXuCwBNpOjCYYpu4PLBPlaWgeuDPXHWODNeUWbMsT8b2DUJZ8S7U5PhaHfwwUjOsdJF8HIoPK-xS1Sxqwn8hGNl2YE4jGhEAG18Z8kpH5_z0QYUWICNsAdB6YA3KwCcA_V6kzkMsz83eFh6QdhjTBpWDDtx-QcvpTxM_BJEq_zbF7DxGn-BvFW82TC8m-ug9SHijzGZMbazKGOqir7Aqf0cr0I9jBz-dDTDOZt4V6OcWRoXnKriYStrFpwz6jpPvn-hikat5tUIZU8kzt"
-                  onEdit={() => setView('edit')}
-                />
-                <UserRow 
-                  name="Roberto Almeida" 
-                  phone="(13) 98822-1100" 
-                  gender="Masculino" 
-                  coupon="—" 
-                  status="Teste Grátis"
-                  trialDays="1 Dia" 
-                  date="18/03/2024"
-                  avatar="https://lh3.googleusercontent.com/aida-public/AB6AXuBAAJrXxK7VgsrIPEOCx8XzJizmQ0Pg9ANCCFxiDYQBGF3kHd_Ef8VTqiXCXMg5YJNykCacg4iwGTI2UZ-LcgfRsN3qLob5nV6G5nwApDeSWZYm4UEfLRiYdV5q5vFIqV-dKBNCxYjWNDL6OVDrV10cTg1uJ2ge5gNuvhcsIzytk4DrqKDaooWZwfb0vQH33_kAdOyqnlH5LU4MGkbY86O4Sti8rKW8xD7apRO7aR-sO1QbKQ9vmOBtlL5bfiIu0hR_as6pE5cZwynW"
-                  onEdit={() => setView('edit')}
-                />
+                {loading ? (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-12 text-center">
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="animate-spin size-8 border-4 border-primary border-t-transparent rounded-full"></div>
+                        <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Carregando alunos...</p>
+                      </div>
+                    </td>
+                  </tr>
+                ) : filteredUsers.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-12 text-center text-slate-500 uppercase font-black text-sm italic tracking-widest">
+                      Nenhum aluno encontrado
+                    </td>
+                  </tr>
+                ) : (
+                  filteredUsers.map((user) => (
+                    <UserRow
+                      key={user.id}
+                      name={user.full_name || 'Sem nome'}
+                      phone={user.phone || '—'}
+                      gender={user.gender || '—'}
+                      coupon={user.coupon || '—'}
+                      status={user.status || 'Ativo'}
+                      trialDays={user.trial_days}
+                      date={new Date(user.created_at).toLocaleDateString('pt-BR')}
+                      avatar={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.full_name || 'U')}&background=DC003C&color=fff`}
+                      onEdit={() => handleEdit(user)}
+                    />
+                  ))
+                )}
               </tbody>
             </table>
           </div>
           <div className="px-6 py-4 bg-black/20 border-t border-white/5 flex items-center justify-between">
-            <span className="text-xs text-slate-500 font-medium">Mostrando 5 de 128 alunos</span>
+            <span className="text-xs text-slate-500 font-medium">Mostrando {filteredUsers.length} de {users.length} alunos</span>
             <div className="flex gap-1">
               <button className="size-8 flex items-center justify-center rounded border border-white/10 hover:bg-white/5 transition-colors">
-                 <Icon name="chevron_left" className="text-sm" />
+                <Icon name="chevron_left" className="text-sm" />
               </button>
               <button className="size-8 flex items-center justify-center rounded bg-primary text-white font-bold text-xs">1</button>
               <button className="size-8 flex items-center justify-center rounded border border-white/10 hover:bg-white/5 transition-colors font-bold text-xs">2</button>
@@ -175,10 +239,10 @@ interface UserRowProps {
 
 const UserRow: React.FC<UserRowProps> = ({ name, phone, gender, coupon, status, trialDays, date, avatar, onEdit }) => {
   const isTrial = status.includes("Teste");
-  const statusClasses = isTrial 
-    ? "bg-amber-500/10 text-amber-500 border-amber-500/20" 
+  const statusClasses = isTrial
+    ? "bg-amber-500/10 text-amber-500 border-amber-500/20"
     : "bg-emerald-500/10 text-emerald-500 border-emerald-500/20";
-    
+
   return (
     <tr className="hover:bg-white/[0.02] transition-colors group border-b border-white/5 last:border-0">
       <td className="px-6 py-4">

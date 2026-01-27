@@ -31,13 +31,20 @@ export const Register: React.FC<RegisterProps> = ({ onBack, onComplete }) => {
     return () => clearTimeout(timer);
   }, [username]);
 
+  const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value.replace(/\s/g, '').toLowerCase();
+    setUsername(val);
+  };
+
   const checkUsername = async (name: string) => {
+    if (name.length < 3) return;
+
     setCheckingUsername(true);
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id') // Selecionar apenas ID é mais leve
-        .eq('username', name.trim().toLowerCase())
+        .select('id')
+        .eq('username', name)
         .maybeSingle();
 
       if (error) return;
@@ -52,11 +59,6 @@ export const Register: React.FC<RegisterProps> = ({ onBack, onComplete }) => {
     } finally {
       setCheckingUsername(false);
     }
-  };
-
-  const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value.replace(/\s/g, '').toLowerCase();
-    setUsername(val);
   };
 
   const handleNext = () => setStep(prev => prev + 1);
@@ -88,6 +90,7 @@ export const Register: React.FC<RegisterProps> = ({ onBack, onComplete }) => {
             username: username,
             phone: phone,
             role: 'user',
+            gender: gender,
           }
         }
       });

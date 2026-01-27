@@ -56,7 +56,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
       <div className="bg-background-dark min-h-screen flex flex-col items-center justify-center text-white font-display p-6">
         <h1 className="text-3xl font-black uppercase italic mb-4">Módulo em Desenvolvimento</h1>
         <p className="text-slate-400 mb-8">O módulo de {view} está sendo preparado.</p>
-        <button 
+        <button
           onClick={() => setView('main')}
           className="bg-primary px-8 py-3 rounded-xl font-bold active:scale-95 transition-all"
         >
@@ -82,15 +82,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
               <span className="absolute top-2.5 right-2.5 size-2 bg-primary rounded-full border-2 border-background-light dark:border-background-dark"></span>
             </button>
             <div className="h-10 w-px bg-slate-200 dark:bg-white/10 mx-1"></div>
-            <button 
+            <button
               onClick={onLogout}
-              className="flex items-center gap-3 px-2 rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 text-slate-600 dark:text-white transition-colors"
+              className="flex size-10 items-center justify-center rounded-lg bg-primary/10 hover:bg-primary text-primary hover:text-white transition-all active:scale-95"
+              title="Sair"
             >
-              <div className="text-right hidden sm:block">
-                <p className="text-xs font-bold uppercase leading-none">Administrador</p>
-                <p className="text-[10px] text-slate-500 uppercase">Online</p>
-              </div>
-              <Icon name="account_circle" className="text-3xl" />
+              <Icon name="logout" className="text-xl" />
             </button>
           </div>
         </div>
@@ -99,64 +96,74 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
       <main className="flex-1 flex flex-col items-center justify-center p-6 md:p-12 w-full relative">
         <div className="w-full max-w-6xl flex flex-col gap-12 items-center">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8 w-full">
-            <DashboardCard 
-              icon="group" 
-              title="Usuários" 
-              subtitle="Gestão de Alunos" 
+            <DashboardCard
+              icon="group"
+              title="Usuários"
+              subtitle="Gestão de Alunos"
               onClick={() => setView('users')}
             />
-            <DashboardCard 
-              icon="payments" 
-              title="Financeiro" 
-              subtitle="Controle de Caixa" 
+            <DashboardCard
+              icon="payments"
+              title="Financeiro"
+              subtitle="Controle de Caixa"
               onClick={() => setView('finance')}
             />
-            <DashboardCard 
-              icon="hub" 
-              title="Integrações" 
-              subtitle="Conexões Externas" 
+            <DashboardCard
+              icon="hub"
+              title="Integrações"
+              subtitle="Conexões Externas"
               onClick={() => setView('integrations')}
             />
-            <DashboardCard 
-              icon="campaign" 
-              title="Influenciadores" 
-              subtitle="Marketing & Parcerias" 
+            <DashboardCard
+              icon="campaign"
+              title="Influenciadores"
+              subtitle="Marketing & Parcerias"
               onClick={() => setView('influencers')}
             />
-            <DashboardCard 
-              icon="fitness_center" 
-              title="Gestão de Treinos" 
-              subtitle="Planilhas e Rotinas" 
+            <DashboardCard
+              icon="fitness_center"
+              title="Gestão de Treinos"
+              subtitle="Planilhas e Rotinas"
               onClick={() => setView('workout-management')}
             />
-            <DashboardCard 
-              icon="restaurant" 
-              title="Gestão de Receitas" 
-              subtitle="Nutrição e Dietas" 
+            <DashboardCard
+              icon="restaurant"
+              title="Gestão de Receitas"
+              subtitle="Nutrição e Dietas"
               onClick={() => setView('recipes')}
             />
-            <DashboardCard 
-              icon="exercise" 
-              title="Exercícios" 
-              subtitle="Banco de Movimentos" 
+            <DashboardCard
+              icon="exercise"
+              title="Exercícios"
+              subtitle="Banco de Movimentos"
               onClick={() => setView('exercises')}
             />
-            <DashboardCard 
-              icon="military_tech" 
-              title="Gestão de Medalhas" 
-              subtitle="Gamificação e Conquistas" 
+            <DashboardCard
+              icon="military_tech"
+              title="Gestão de Medalhas"
+              subtitle="Gamificação e Conquistas"
               onClick={() => setView('medals')}
             />
           </div>
-          
-          <div className="mt-4 space-y-3 text-center">
-            <h1 className="text-4xl font-black dark:text-white uppercase tracking-tight italic">Painel Administrativo</h1>
-            <p className="text-slate-500 dark:text-slate-400 text-sm font-medium max-w-md mx-auto leading-relaxed">
-              Selecione um módulo acima para gerenciar os dados da sua plataforma fitness em tempo real.
-            </p>
+
+          <div className="mt-4 space-y-6 text-center">
+            <div className="space-y-3">
+              <h1 className="text-4xl font-black dark:text-white uppercase tracking-tight italic">Painel Administrativo</h1>
+              <p className="text-slate-500 dark:text-slate-400 text-sm font-medium max-w-md mx-auto leading-relaxed">
+                Selecione um módulo acima para gerenciar os dados da sua plataforma fitness em tempo real.
+              </p>
+            </div>
+
+            <button
+              onClick={onLogout}
+              className="inline-flex items-center gap-2 px-8 py-3 rounded-full border border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/5 text-slate-600 dark:text-slate-400 text-sm font-bold transition-all active:scale-95 uppercase tracking-widest"
+            >
+              <Icon name="logout" />
+              Sair da conta admin
+            </button>
           </div>
         </div>
-        
+
         <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full max-w-4xl bg-primary/5 blur-[160px] rounded-full"></div>
         </div>
@@ -178,7 +185,7 @@ interface DashboardCardProps {
 
 const DashboardCard: React.FC<DashboardCardProps> = ({ icon, title, subtitle, onClick }) => {
   return (
-    <button 
+    <button
       onClick={onClick}
       className="w-full aspect-video sm:aspect-square flex flex-col items-center justify-center gap-4 bg-card-dark hover:bg-[#333333] text-white rounded-[2rem] shadow-2xl transition-all active:scale-95 group border border-white/5 relative overflow-hidden"
     >
