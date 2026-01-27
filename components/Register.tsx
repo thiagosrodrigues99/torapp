@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Icon } from './Icon';
 import { supabase } from '../lib/supabase';
 
@@ -12,10 +12,52 @@ export const Register: React.FC<RegisterProps> = ({ onBack, onComplete }) => {
   const [gender, setGender] = useState('masculino');
   const [fullName, setFullName] = useState('');
   const [username, setUsername] = useState('');
+  const [usernameError, setUsernameError] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [checkingUsername, setCheckingUsername] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (username.length >= 3) {
+        checkUsername(username);
+      } else {
+        setUsernameError('');
+      }
+    }, 150); // Reduzido para 150ms para resposta quase instantânea
+
+    return () => clearTimeout(timer);
+  }, [username]);
+
+  const checkUsername = async (name: string) => {
+    setCheckingUsername(true);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id') // Selecionar apenas ID é mais leve
+        .eq('username', name.trim().toLowerCase())
+        .maybeSingle();
+
+      if (error) return;
+
+      if (data) {
+        setUsernameError('Usuário já cadastrado');
+      } else {
+        setUsernameError('');
+      }
+    } catch (err) {
+      // Ignora erro silenciando para não travar a UX
+    } finally {
+      setCheckingUsername(false);
+    }
+  };
+
+  const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value.replace(/\s/g, '').toLowerCase();
+    setUsername(val);
+  };
 
   const handleNext = () => setStep(prev => prev + 1);
   const handlePrev = () => setStep(prev => prev - 1);
@@ -107,20 +149,29 @@ export const Register: React.FC<RegisterProps> = ({ onBack, onComplete }) => {
 
           <label className="flex flex-col w-full">
             <p className="text-slate-900 dark:text-white text-sm font-semibold leading-normal pb-2 uppercase tracking-wider">Usuário</p>
-            <input
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="form-input flex w-full rounded-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary border border-slate-300 dark:border-input-border/20 bg-white dark:bg-input-bg h-14 placeholder:text-slate-400 dark:placeholder:text-white/40 px-4 text-base font-normal"
-              placeholder="Escolha um nome de usuário"
-              type="text"
-              required
-            />
+            <div className="relative">
+              <input
+                value={username}
+                onChange={handleUsernameChange}
+                className={`form-input flex w-full rounded-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 border bg-white dark:bg-input-bg h-14 placeholder:text-slate-400 dark:placeholder:text-white/40 px-4 text-base font-normal transition-all ${usernameError ? 'border-red-500 focus:ring-red-500' : 'border-slate-300 dark:border-input-border/20 focus:ring-primary'}`}
+                placeholder="Escolha um nome de usuário"
+                type="text"
+                required
+              />
+              {checkingUsername && (
+                <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                  <div className="animate-spin size-4 border-2 border-primary border-t-transparent rounded-full"></div>
+                </div>
+              )}
+            </div>
+            {usernameError && <p className="text-red-500 text-xs font-bold mt-1 ml-1 uppercase">{usernameError}</p>}
           </label>
 
           <div className="mt-auto mb-6 pt-4">
             <button
               type="submit"
-              className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl text-lg tracking-widest transition-colors flex items-center justify-center gap-2"
+              disabled={!!usernameError || checkingUsername || !username || !fullName}
+              className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl text-lg tracking-widest transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:grayscale"
             >
               PRÓXIMO
               <Icon name="chevron_right" className="text-[20px]" />

@@ -73,8 +73,17 @@ export default function App() {
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setUserRole(null);
+    try {
+      console.log('Iniciando logout...');
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error('Erro ao sair:', error);
+    } finally {
+      // Garante que o estado seja limpo mesmo se o signOut falhar (ex: rede offline)
+      setUserRole(null);
+      setView('dashboard'); // Volta para a tela inicial
+      console.log('Estado de usuário limpo.');
+    }
   };
 
   const isAuthenticated = userRole !== null;

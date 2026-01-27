@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Icon } from './Icon';
+import { BottomNavigation } from './BottomNavigation';
 
 interface UserDashboardProps {
   onEditProfile: () => void;
@@ -39,9 +40,13 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
       {/* Top Bar */}
       <div className="sticky top-0 z-50 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md">
         <div className="flex items-center p-4 pb-2 justify-between">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-surface-dark/10 dark:bg-surface-dark">
-            <Icon name="notifications" className="text-primary" />
-          </div>
+          <button
+            onClick={onLogout}
+            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-surface-dark/10 dark:bg-surface-dark hover:bg-primary/20 transition-colors"
+            title="Sair"
+          >
+            <Icon name="logout" className="text-primary" />
+          </button>
           <h2 className="text-lg font-bold leading-tight tracking-tight flex-1 text-center">Dashboard</h2>
           <div className="flex items-center justify-end">
             <button onClick={onEditProfile} className="text-primary text-sm font-bold leading-normal tracking-wide">Editar Perfil</button>
@@ -131,7 +136,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
               <div className="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full mb-4">
                 <div className="bg-blue-500 h-2 rounded-full transition-all duration-500" style={{ width: `${waterPercentage}%` }}></div>
               </div>
-              <button 
+              <button
                 onClick={handleAddWater}
                 className="flex items-center justify-center rounded-lg h-10 px-4 bg-blue-500/10 text-blue-500 gap-2 text-sm font-bold w-full active:scale-95 transition-transform"
               >
@@ -173,33 +178,33 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
 
       {/* Menu Cards */}
       <div className="px-4 mt-8 space-y-4">
-        <MenuCard 
-          icon="home_health" 
-          title="Treino em Casa" 
-          subtitle="Exercícios para fazer onde estiver" 
-          buttonText="INICIAR" 
+        <MenuCard
+          icon="home_health"
+          title="Treino em Casa"
+          subtitle="Exercícios para fazer onde estiver"
+          buttonText="INICIAR"
           onClick={onStartWorkout}
         />
-        <MenuCard 
-          icon="directions_run" 
-          title="Corrida / Caminhada" 
-          subtitle="Monitore seu percurso" 
-          buttonText="INICIAR" 
-          onClick={onRunClick} 
+        <MenuCard
+          icon="directions_run"
+          title="Corrida / Caminhada"
+          subtitle="Monitore seu percurso"
+          buttonText="INICIAR"
+          onClick={onRunClick}
         />
-        <MenuCard 
-          icon="restaurant" 
-          title="Alimentação" 
-          subtitle="Receitas e dietas saudáveis" 
-          buttonText="VER RECEITAS" 
-          onClick={onRecipesClick} 
+        <MenuCard
+          icon="restaurant"
+          title="Alimentação"
+          subtitle="Receitas e dietas saudáveis"
+          buttonText="VER RECEITAS"
+          onClick={onRecipesClick}
         />
-        <MenuCard 
-          icon="support_agent" 
-          title="Personal Trainer" 
-          subtitle="Fale com um especialista" 
-          buttonText="WHATSAPP" 
-          onClick={onPersonalTrainerClick} 
+        <MenuCard
+          icon="support_agent"
+          title="Personal Trainer"
+          subtitle="Fale com um especialista"
+          buttonText="WHATSAPP"
+          onClick={onPersonalTrainerClick}
         />
       </div>
 
@@ -228,29 +233,20 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
 
       {/* Logout */}
       <div className="px-4 mt-12 mb-32 flex justify-center">
-        <button onClick={onLogout} className="flex items-center gap-2 py-3 px-6 rounded-full border border-gray94/10 hover:bg-gray94/5 text-gray94/70 text-sm font-medium transition-all active:scale-95">
+        <button
+          onClick={() => {
+            console.log('Botão Sair clicado');
+            onLogout();
+          }}
+          className="flex items-center gap-2 py-3 px-6 rounded-full border border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/5 text-slate-500 dark:text-gray-400 text-sm font-medium transition-all active:scale-95"
+        >
           <Icon name="logout" className="text-xl" />
           <span>Sair da conta</span>
         </button>
       </div>
 
       {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 dark:bg-background-dark/90 backdrop-blur-xl border-t border-slate-200 dark:border-white/5 pb-8 pt-2">
-        <div className="flex items-center justify-around px-2">
-          <button onClick={() => onNavigate('dashboard')} className={`flex flex-col items-center gap-1 flex-1 ${currentTab === 'dashboard' ? 'text-primary' : 'text-slate-400 dark:text-slate-500'}`}>
-            <Icon name="home" fill={currentTab === 'dashboard'} />
-            <span className="text-[10px] font-bold">Início</span>
-          </button>
-          <button onClick={() => onNavigate('agenda')} className={`flex flex-col items-center gap-1 flex-1 ${currentTab === 'agenda' ? 'text-primary' : 'text-slate-400 dark:text-slate-500'}`}>
-            <Icon name="calendar_month" fill={currentTab === 'agenda'} />
-            <span className="text-[10px] font-medium">Agenda</span>
-          </button>
-          <button onClick={() => onNavigate('community')} className={`flex flex-col items-center gap-1 flex-1 ${currentTab === 'community' ? 'text-primary' : 'text-slate-400 dark:text-slate-500'}`}>
-            <Icon name="groups" fill={currentTab === 'community'} />
-            <span className="text-[10px] font-medium">Comunidade</span>
-          </button>
-        </div>
-      </div>
+      <BottomNavigation currentTab={currentTab} onNavigate={onNavigate} />
     </div>
   );
 };
