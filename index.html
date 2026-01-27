@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html class="dark" lang="pt-BR">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Dashboard Fitness</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#dc003c",
+                        "primary-accent": "#dc003c",
+                        "gray94": "#f0f0f0",
+                        "gray-94": "#f0f0f0",
+                        "background-light": "#f8f5f6",
+                        "background-dark": "#141414",
+                        "surface-dark": "#1e1e1e",
+                        "card-nutrition": "#282828",
+                        "card-dark": "#282828",
+                        "input-bg": "#282828",
+                        "input-border": "#f0f0f0",
+                        "text-main": "#f0f0f0"
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "sans-serif"],
+                        "sans": ["Lexend", "sans-serif"],
+                        "manrope": ["Manrope", "sans-serif"],
+                        "jakarta": ["Plus Jakarta Sans", "sans-serif"],
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+    <style type="text/tailwindcss">
+        body {
+            font-family: 'Lexend', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            min-height: max(884px, 100dvh);
+        }
+        .grayscale-filter {
+            filter: grayscale(100%);
+            opacity: 0.5;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        input::placeholder {
+            color: #666;
+        }
+        .circular-progress {
+            background: radial-gradient(closest-side, #141414 85%, transparent 86% 100%),
+                        conic-gradient(#dc003c 65%, #3a272c 0);
+        }
+        input[type='range']::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            background: #dc003c;
+            border: 3px solid #f0f0f0;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(220, 0, 60, 0.4);
+        }
+        input[type='range']::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            background: #dc003c;
+            border: 3px solid #f0f0f0;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(220, 0, 60, 0.4);
+        }
+        .recipe-list-container {
+            max-width: 450px;
+            margin: 0 auto;
+        }
+        
+        /* Custom styles for Schedule New screen */
+        input[type="text"], input[type="date"], textarea {
+             background-color: #282828;
+             border-color: rgba(240, 240, 240, 0.1); /* gray-94/10 */
+             color: #f0f0f0; /* gray-94 */
+        }
+        input:focus, textarea:focus {
+             border-color: #dc003c; /* primary */
+             outline: none;
+             --tw-ring-color: #dc003c;
+        }
+        
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            opacity: 0;
+            position: absolute;
+            right: 1rem;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+        }
+        .time-picker-column {
+            height: 54px;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+        }
+        .time-picker-item {
+            height: 27px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            scroll-snap-align: center;
+        }
+        .time-picker-mask {
+            background: linear-gradient(to bottom, #282828 0%, rgba(40,40,40,0) 25%, rgba(40,40,40,0) 75%, #282828 100%);
+            pointer-events: none;
+        }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white min-h-screen pb-40">
+    <div id="root"></div>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>

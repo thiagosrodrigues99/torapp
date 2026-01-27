@@ -1,0 +1,5 @@
+{
+  "name": "Dashboard Fitness",
+  "description": "A dark-themed fitness dashboard tracking workouts, hydration, and nutrition with a sleek mobile-first design.",
+  "requestFramePermissions": []
+}
