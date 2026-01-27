@@ -155,8 +155,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
             </div>
 
             <button
-              onClick={onLogout}
-              className="inline-flex items-center gap-2 px-8 py-3 rounded-full border border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/5 text-slate-600 dark:text-slate-400 text-sm font-bold transition-all active:scale-95 uppercase tracking-widest"
+              onClick={(e) => {
+                e.preventDefault();
+                onLogout();
+              }}
+              className="inline-flex items-center gap-2 px-8 py-3 rounded-full border border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/5 text-slate-600 dark:text-slate-400 text-sm font-bold transition-all active:scale-95 uppercase tracking-widest cursor-pointer z-10"
             >
               <Icon name="logout" />
               Sair da conta admin
