@@ -9,7 +9,7 @@ interface NavItemProps {
 }
 
 const NavItem: React.FC<NavItemProps> = ({ icon, label, active = false, onClick }) => (
-  <button 
+  <button
     onClick={onClick}
     className={`flex flex-col items-center gap-1 flex-1 ${active ? 'text-primary' : 'text-slate-400 dark:text-slate-500'}`}
   >
@@ -27,22 +27,17 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({ currentTab =
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 dark:bg-background-dark/90 backdrop-blur-xl border-t border-slate-200 dark:border-white/5 pb-8 pt-2">
       <div className="flex items-center justify-around px-2">
-        <NavItem 
-          icon="home" 
-          label="Início" 
-          active={currentTab === 'dashboard'} 
+        <NavItem
+          icon="home"
+          label="Início"
+          active={currentTab === 'dashboard'}
           onClick={() => onNavigate?.('dashboard')}
         />
-        <NavItem 
-          icon="calendar_month" 
-          label="Agenda" 
-          active={currentTab === 'agenda'} 
-          onClick={() => onNavigate?.('agenda')}
-        />
-        <NavItem 
-          icon="groups" 
-          label="Comunidade" 
-          active={currentTab === 'community'} 
+
+        <NavItem
+          icon="groups"
+          label="Comunidade"
+          active={currentTab === 'community'}
           onClick={() => onNavigate?.('community')}
         />
       </div>

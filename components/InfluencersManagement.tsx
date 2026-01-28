@@ -1,15 +1,104 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Icon } from './Icon';
+import { supabase } from '../lib/supabase';
 import { CommissionPayment } from './CommissionPayment';
 import { InfluencerSales } from './InfluencerSales';
 import { EditInfluencer } from './EditInfluencer';
+import { CreateInfluencer } from './CreateInfluencer';
+
+interface Influencer {
+  id: string;
+  full_name: string;
+  username: string;
+  coupon: string;
+  status: string;
+  phone: string;
+  avatar_url?: string;
+  commission_pending: number;
+}
 
 interface InfluencersManagementProps {
   onBack: () => void;
 }
 
 export const InfluencersManagement: React.FC<InfluencersManagementProps> = ({ onBack }) => {
-  const [view, setView] = useState<'list' | 'payment' | 'sales' | 'edit'>('list');
+  const [view, setView] = useState<'list' | 'payment' | 'sales' | 'edit' | 'create'>('list');
+  const [selectedInfluencerId, setSelectedInfluencerId] = useState<string | null>(null);
+  const [influencers, setInfluencers] = useState<Influencer[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [stats, setStats] = useState({
+    totalCount: 0,
+    totalSales: 0,
+    pendingCommissions: 0
+  });
+
+  useEffect(() => {
+    fetchInfluencers();
+  }, []);
+
+  const fetchInfluencers = async () => {
+    try {
+      setLoading(true);
+
+      // 1. Fetch all influencers
+      const { data: influencerProfiles, error: infError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('role', 'influencer');
+
+      if (infError) throw infError;
+
+      // 2. Fetch all users to calculate commissions and sales
+      const { data: allUsers, error: userError } = await supabase
+        .from('profiles')
+        .select('coupon, status')
+        .eq('role', 'user');
+
+      if (userError) throw userError;
+
+      const formattedInfluencers: Influencer[] = (influencerProfiles || []).map(inf => {
+        const referredUsers = (allUsers || []).filter(u => u.coupon === inf.coupon);
+        const paidUsers = referredUsers.filter(u => u.status === 'Ativo').length;
+
+        return {
+          id: inf.id,
+          full_name: inf.full_name || 'Sem Nome',
+          username: inf.username || inf.full_name?.toLowerCase().replace(/\s/g, '') || 'influencer',
+          coupon: inf.coupon || '---',
+          status: inf.status || 'Ativo',
+          phone: inf.phone || '---',
+          avatar_url: inf.avatar_url,
+          commission_pending: paidUsers * 35 // Logic: R$ 35 per paid user
+        };
+      });
+
+      setInfluencers(formattedInfluencers);
+
+      // Calculate global stats
+      const totalSalesCount = (allUsers || []).filter(u =>
+        u.status === 'Ativo' &&
+        formattedInfluencers.some(inf => inf.coupon === u.coupon)
+      ).length;
+
+      setStats({
+        totalCount: formattedInfluencers.length,
+        totalSales: totalSalesCount * 79.90, // Example plan price R$ 79,90
+        pendingCommissions: formattedInfluencers.reduce((acc, curr) => acc + curr.commission_pending, 0)
+      });
+
+    } catch (err) {
+      console.error('Error fetching influencers:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredInfluencers = influencers.filter(inf =>
+    inf.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    inf.coupon.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    inf.username.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   if (view === 'payment') {
     return <CommissionPayment onBack={() => setView('list')} />;
@@ -19,8 +108,19 @@ export const InfluencersManagement: React.FC<InfluencersManagementProps> = ({ on
     return <InfluencerSales onBack={() => setView('list')} />;
   }
 
-  if (view === 'edit') {
-    return <EditInfluencer onBack={() => setView('list')} />;
+  if (view === 'edit' && selectedInfluencerId) {
+    return <EditInfluencer influencerId={selectedInfluencerId} onBack={() => { setView('list'); fetchInfluencers(); }} />;
+  }
+
+  if (view === 'create') {
+    return (
+      <CreateInfluencer
+        onBack={() => {
+          setView('list');
+          fetchInfluencers();
+        }}
+      />
+    );
   }
 
   return (
@@ -28,8 +128,8 @@ export const InfluencersManagement: React.FC<InfluencersManagementProps> = ({ on
       <header className="sticky top-0 z-50 bg-background-dark/90 backdrop-blur-md border-b border-white/5 w-full">
         <div className="flex items-center p-4 justify-between w-full px-4 lg:px-8">
           <div className="flex items-center gap-4">
-            <button 
-              onClick={onBack} 
+            <button
+              onClick={onBack}
               className="flex items-center justify-center p-2 rounded-lg hover:bg-white/10 text-white transition-colors"
             >
               <Icon name="arrow_back" className="text-xl" />
@@ -37,7 +137,10 @@ export const InfluencersManagement: React.FC<InfluencersManagementProps> = ({ on
             <h2 className="text-lg lg:text-xl font-bold tracking-tight uppercase italic text-white leading-tight">Gestão de Comissões e Perfil</h2>
           </div>
           <div className="flex items-center gap-3 lg:gap-6">
-            <button className="bg-primary hover:bg-[#b50031] text-white p-2.5 lg:px-6 rounded-lg font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2">
+            <button
+              onClick={() => setView('create')}
+              className="bg-primary hover:bg-[#b50031] text-white p-2.5 lg:px-6 rounded-lg font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2"
+            >
               <Icon name="add_circle" className="text-lg" />
               <span className="hidden sm:inline">Cadastrar Influenciador</span>
             </button>
@@ -58,9 +161,9 @@ export const InfluencersManagement: React.FC<InfluencersManagementProps> = ({ on
           </div>
         </div>
       </header>
-      
+
       <main className="flex-1 p-4 lg:p-8 w-full max-w-[1600px] mx-auto space-y-6 lg:space-y-8">
-        
+
         {/* FILTER SECTION */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card-dark/50 p-4 rounded-2xl border border-white/5">
           <div className="flex items-center gap-3">
@@ -82,7 +185,7 @@ export const InfluencersManagement: React.FC<InfluencersManagementProps> = ({ on
                 <option value="2023-06">Junho 2023</option>
               </select>
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none text-xl">
-                 <Icon name="expand_more" />
+                <Icon name="expand_more" />
               </span>
             </div>
             <button className="size-10 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 text-white transition-colors border border-white/5">
@@ -99,7 +202,7 @@ export const InfluencersManagement: React.FC<InfluencersManagementProps> = ({ on
             </div>
             <div>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Influenciadores</p>
-              <p className="text-3xl font-black text-white mt-1">142</p>
+              <p className="text-3xl font-black text-white mt-1">{stats.totalCount}</p>
             </div>
           </div>
           <div className="bg-card-dark p-6 rounded-2xl border border-white/5 flex items-center gap-5">
@@ -108,7 +211,9 @@ export const InfluencersManagement: React.FC<InfluencersManagementProps> = ({ on
             </div>
             <div>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Vendas por Cupom (R$)</p>
-              <p className="text-3xl font-black text-white mt-1">R$ 84.250,00</p>
+              <p className="text-3xl font-black text-white mt-1">
+                {stats.totalSales.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              </p>
             </div>
           </div>
           <div className="bg-card-dark p-6 rounded-2xl border border-white/5 flex items-center gap-5">
@@ -117,7 +222,9 @@ export const InfluencersManagement: React.FC<InfluencersManagementProps> = ({ on
             </div>
             <div>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Comissões Pendentes</p>
-              <p className="text-3xl font-black text-white mt-1">R$ 12.420,00</p>
+              <p className="text-3xl font-black text-white mt-1">
+                {stats.pendingCommissions.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              </p>
             </div>
           </div>
         </div>
@@ -131,7 +238,13 @@ export const InfluencersManagement: React.FC<InfluencersManagementProps> = ({ on
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xl">
                   <Icon name="search" />
                 </span>
-                <input className="bg-[#1a1a1a] border-white/5 rounded-lg pl-10 pr-4 py-2 text-xs focus:ring-primary focus:border-primary w-full text-white placeholder:text-slate-500 outline-none" placeholder="Buscar influenciador..." type="text"/>
+                <input
+                  className="bg-[#1a1a1a] border-white/5 rounded-lg pl-10 pr-4 py-2 text-xs focus:ring-primary focus:border-primary w-full text-white placeholder:text-slate-500 outline-none"
+                  placeholder="Buscar influenciador..."
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
               </div>
             </div>
           </div>
@@ -142,195 +255,110 @@ export const InfluencersManagement: React.FC<InfluencersManagementProps> = ({ on
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">Influenciador</th>
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">Cupom</th>
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400 text-center whitespace-nowrap">Status Cupom</th>
-                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">Chave Pix</th>
-                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400 text-center">Comissão Out/23</th>
-                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400 text-center">Status Pagamento</th>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">Telefone</th>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400 text-center">Comissão Pendente</th>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400 text-center">Status</th>
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400 text-right">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {/* Bruno Siqueira */}
-                <tr className="hover:bg-white/5 transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="size-10 rounded-full bg-slate-700 overflow-hidden ring-2 ring-primary/20 flex-shrink-0">
-                        <img alt="Avatar" className="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD9eqzLjWMoEKw6Rf-IeFtwjc7fyq6qtwYC1wgjGo4D5Z6RRWtfdQLIz-tdNze5fxS9zfrPwEI5RyJFPoFJ21Azk-09wQ-ahVEfmujnYI3_i7W2kHTIHL4xPIisGIqbzZX3eYfVv08cYbPgZaBJIRZ72qSIaV49DaUUV_yb4HVxsb_fwhJRNfFacexASlA-xbno_C78HapiRGfzr_fFE_D58c44gpbmarMLWDX1hBegbyuDspEKyoSJ-Ugu9rHzKYFwO99yMfr28CWi"/>
+                {loading ? (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="animate-spin size-6 border-2 border-primary border-t-transparent rounded-full"></div>
+                        <p className="text-[10px] font-bold uppercase tracking-widest">Carregando influenciadores...</p>
                       </div>
-                      <div>
-                        <p className="text-sm font-bold text-white">Bruno Siqueira</p>
-                        <p className="text-[10px] text-slate-500">@brunosiqueira_fit</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="bg-primary/10 text-primary text-[11px] font-black px-3 py-1 rounded-md uppercase">BRUNO10</span>
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input defaultChecked className="sr-only peer" type="checkbox"/>
-                      <div className="w-9 h-5 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
-                    </label>
-                  </td>
-                  <td className="px-6 py-4">
-                    <p className="text-xs text-slate-300 font-mono">bruno.pix@gmail.com</p>
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <p className="text-sm font-black text-white">R$ 1.450,00</p>
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-500 uppercase">
-                      <span className="size-1.5 rounded-full bg-amber-500"></span>
-                      Pendente
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button 
-                        onClick={() => setView('edit')}
-                        className="p-2 text-white hover:text-primary transition-colors flex items-center justify-center rounded-lg hover:bg-white/5 border border-white/5" 
-                        title="Editar Perfil"
-                      >
-                        <Icon name="edit" className="text-lg" />
-                      </button>
-                      <button 
-                        onClick={() => setView('payment')}
-                        className="px-3 py-2 text-[10px] font-black uppercase bg-green-500 text-white hover:bg-green-600 rounded-lg transition-colors shadow-lg shadow-green-500/20"
-                      >
-                        Pagar
-                      </button>
-                      <button 
-                        onClick={() => setView('sales')}
-                        className="px-3 py-2 text-[10px] font-bold uppercase bg-white/5 hover:bg-white/10 rounded-lg transition-colors border border-white/5"
-                      >
-                        Vendas
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-
-                {/* Juliana Mello */}
-                <tr className="hover:bg-white/5 transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="size-10 rounded-full bg-slate-700 overflow-hidden ring-2 ring-primary/20 flex-shrink-0">
-                        <img alt="Avatar" className="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBmuSh7j5PT13wC5cwBmEyzOzHUcq0qvR7DTc3jOE24rHuKu7yp4UbzWORssxWmohqySGQ1UkPEOoamh1t7gCB7IHA-57TCj67yH5sXJmdeXfsPOhgSAxys2iK9xtOI2JfceoTG8H0hDrgDX0nAiFFYbU0NPSXcCjEMWyII2DTDWDX-ehblqZNFOkbUaExAXyfroUSOHMt-8B7trkROWQhNvWNUdL5zlT9lvk2yxR3Zjmey5aQLSsQxWa-FEHiaNtbv6qed0wMRM2yv"/>
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-white">Juliana Mello</p>
-                        <p className="text-[10px] text-slate-500">@juliana_wellness</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="bg-primary/10 text-primary text-[11px] font-black px-3 py-1 rounded-md uppercase">JULI15OFF</span>
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input defaultChecked className="sr-only peer" type="checkbox"/>
-                      <div className="w-9 h-5 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
-                    </label>
-                  </td>
-                  <td className="px-6 py-4">
-                    <p className="text-xs text-slate-300 font-mono">45.823.123/0001-90</p>
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <p className="text-sm font-black text-white">R$ 2.890,00</p>
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-green-500/10 text-green-500 uppercase">
-                      <span className="size-1.5 rounded-full bg-green-500"></span>
-                      Pago
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button 
-                        onClick={() => setView('edit')}
-                        className="p-2 text-white hover:text-primary transition-colors flex items-center justify-center rounded-lg hover:bg-white/5 border border-white/5" 
-                        title="Editar Perfil"
-                      >
-                        <Icon name="edit" className="text-lg" />
-                      </button>
-                      <button className="px-3 py-2 text-[10px] font-bold uppercase bg-white/5 text-slate-500 cursor-not-allowed rounded-lg transition-colors" disabled>Pago</button>
-                      <button 
-                        onClick={() => setView('sales')}
-                        className="px-3 py-2 text-[10px] font-bold uppercase bg-white/5 hover:bg-white/10 rounded-lg transition-colors border border-white/5"
-                      >
-                        Vendas
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-
-                {/* Ricardo Lima */}
-                <tr className="hover:bg-white/5 transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="size-10 rounded-full bg-slate-700 overflow-hidden ring-2 ring-white/10 flex-shrink-0">
-                        <img alt="Avatar" className="w-full h-full object-cover opacity-50" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBI6hy5xDwrniXxq9J2iWmuSEsQLn0O3RHegp_Cua4-5lafedAV3EzR70JPYtpyqYCgpe4IO0BnPqTP4UbEBiOE4YC8ZWo0V1U2klN_kcVeYTTfcMVNkh_JoeiPErABzaDvc4KNfSp3EJHZYXCjVg24aQI_RMWACOG_mRwBP5V1kBIWVwGU4y_g4o5Ia2B0CVLtOdTIxDSl_CVGJVyliTcJ3zpMG-nyIj5ddTSdwv2381qGJV59Q7FVwPPu0W8Q45Jld7NcLJh4sfs5"/>
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-slate-400">Ricardo Lima</p>
-                        <p className="text-[10px] text-slate-600">@ricardolima_coach</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="bg-white/5 text-slate-500 text-[11px] font-black px-3 py-1 rounded-md uppercase">RICARDO5</span>
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input className="sr-only peer" type="checkbox"/>
-                      <div className="w-9 h-5 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
-                    </label>
-                  </td>
-                  <td className="px-6 py-4">
-                    <p className="text-xs text-slate-500 font-mono">ricardo@lima.com</p>
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <p className="text-sm font-black text-slate-500">R$ 0,00</p>
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-white/5 text-slate-500 uppercase">
-                      <span className="size-1.5 rounded-full bg-slate-500"></span>
-                      Inativo
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button 
-                        onClick={() => setView('edit')}
-                        className="p-2 text-white hover:text-primary transition-colors flex items-center justify-center rounded-lg hover:bg-white/5 border border-white/5" 
-                        title="Editar Perfil"
-                      >
-                        <Icon name="edit" className="text-lg" />
-                      </button>
-                      <button className="px-3 py-2 text-[10px] font-bold uppercase bg-white/5 text-slate-500 cursor-not-allowed rounded-lg transition-colors" disabled>Sem Comissão</button>
-                      <button 
-                        onClick={() => setView('sales')}
-                        className="px-3 py-2 text-[10px] font-bold uppercase bg-white/5 hover:bg-white/10 rounded-lg transition-colors border border-white/5"
-                      >
-                        Vendas
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+                    </td>
+                  </tr>
+                ) : filteredInfluencers.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-12 text-center text-slate-500 italic">
+                      Nenhum influenciador encontrado.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredInfluencers.map((inf) => (
+                    <tr key={inf.id} className="hover:bg-white/5 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="size-10 rounded-full bg-slate-700 overflow-hidden ring-2 ring-primary/20 flex-shrink-0 flex items-center justify-center">
+                            {inf.avatar_url ? (
+                              <img alt="Avatar" className="w-full h-full object-cover" src={inf.avatar_url} />
+                            ) : (
+                              <Icon name="person" className="text-xl text-slate-400" />
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-white">{inf.full_name}</p>
+                            <p className="text-[10px] text-slate-500">@{inf.username}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="bg-primary/10 text-primary text-[11px] font-black px-3 py-1 rounded-md uppercase">{inf.coupon}</span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input checked={inf.status === 'Ativo'} readOnly className="sr-only peer" type="checkbox" />
+                          <div className="w-9 h-5 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
+                        </label>
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="text-xs text-slate-300">{inf.phone}</p>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <p className="text-sm font-black text-white">
+                          {inf.commission_pending.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        </p>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold ${inf.commission_pending > 0 ? 'bg-amber-500/10 text-amber-500' : 'bg-green-500/10 text-green-500'
+                          } uppercase`}>
+                          <span className={`size-1.5 rounded-full ${inf.commission_pending > 0 ? 'bg-amber-500' : 'bg-green-500'}`}></span>
+                          {inf.commission_pending > 0 ? 'Pendente' : 'Em Dia'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => {
+                              setSelectedInfluencerId(inf.id);
+                              setView('edit');
+                            }}
+                            className="p-2 text-white hover:text-primary transition-colors flex items-center justify-center rounded-lg hover:bg-white/5 border border-white/5"
+                            title="Editar Perfil"
+                          >
+                            <Icon name="edit" className="text-lg" />
+                          </button>
+                          <button
+                            onClick={() => setView('payment')}
+                            className={`px-3 py-2 text-[10px] font-black uppercase rounded-lg transition-colors shadow-lg ${inf.commission_pending > 0
+                              ? 'bg-green-500 text-white hover:bg-green-600 shadow-green-500/20'
+                              : 'bg-white/5 text-slate-500 cursor-not-allowed'
+                              }`}
+                            disabled={inf.commission_pending === 0}
+                          >
+                            {inf.commission_pending > 0 ? 'Pagar' : 'Pago'}
+                          </button>
+                          <button
+                            onClick={() => setView('sales')}
+                            className="px-3 py-2 text-[10px] font-bold uppercase bg-white/5 hover:bg-white/10 rounded-lg transition-colors border border-white/5"
+                          >
+                            Vendas
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
           <div className="p-4 border-t border-white/5 flex items-center justify-between">
-            <p className="text-[10px] text-slate-500 uppercase font-bold">Exibindo 3 de 142 influenciadores</p>
-            <div className="flex gap-2">
-              <button className="size-8 flex items-center justify-center rounded bg-white/5 text-white/50 cursor-not-allowed">
-                <Icon name="chevron_left" className="text-lg" />
-              </button>
-              <button className="size-8 flex items-center justify-center rounded bg-primary text-white font-bold text-xs">1</button>
-              <button className="size-8 flex items-center justify-center rounded bg-white/5 text-white hover:bg-white/10 transition-colors font-bold text-xs">2</button>
-              <button className="size-8 flex items-center justify-center rounded bg-white/5 text-white hover:bg-white/10 transition-colors font-bold text-xs">3</button>
-              <button className="size-8 flex items-center justify-center rounded bg-white/5 text-white hover:bg-white/10 transition-colors">
-                 <Icon name="chevron_right" className="text-lg" />
-              </button>
-            </div>
+            <p className="text-[10px] text-slate-500 uppercase font-bold">
+              Total: {filteredInfluencers.length} influenciadores encontrados
+            </p>
           </div>
         </div>
 

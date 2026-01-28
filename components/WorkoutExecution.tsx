@@ -7,6 +7,7 @@ interface Exercise {
   name: string;
   category: string;
   gif_url?: string;
+  thumbnail_url?: string;
   video_url?: string;
 }
 
@@ -20,9 +21,10 @@ interface WorkoutExercise {
 interface WorkoutExecutionProps {
   onBack: () => void;
   onFinish: () => void;
+  selectedGroups?: string[];
 }
 
-export const WorkoutExecution: React.FC<WorkoutExecutionProps> = ({ onBack, onFinish }) => {
+export const WorkoutExecution: React.FC<WorkoutExecutionProps> = ({ onBack, onFinish, selectedGroups }) => {
   const [exercises, setExercises] = useState<WorkoutExercise[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -68,19 +70,42 @@ export const WorkoutExecution: React.FC<WorkoutExecutionProps> = ({ onBack, onFi
       }
 
       if (planId) {
-        const { data, error } = await supabase
+        console.log('DEBUG: Plan ID:', planId);
+        let query = supabase
           .from('workout_plan_exercises')
           .select(`
             id,
             sets,
             reps,
-            exercise:exercise_bank(id, name, category, gif_url, video_url)
+            exercise:exercise_bank!inner(*)
           `)
-          .eq('plan_id', planId)
-          .order('order_index', { ascending: true });
+          .eq('plan_id', planId);
 
-        if (error) throw error;
-        setExercises(data as any);
+        if (selectedGroups && selectedGroups.length > 0) {
+          console.log('DEBUG: Selected groups:', selectedGroups);
+          query = query.in('exercise_bank.category', selectedGroups);
+        }
+
+        const { data, error } = await query.order('order_index', { ascending: true });
+
+        if (error) {
+          console.error('DEBUG: Query error:', error);
+          throw error;
+        }
+
+        console.log('DEBUG: Raw data from Supabase:', data);
+
+        // Formatar para garantir que o exercício seja um objeto e as propriedades existam
+        const formattedExercises = (data as any[] || []).map(item => {
+          const exerciseData = Array.isArray(item.exercise) ? item.exercise[0] : item.exercise;
+          return {
+            ...item,
+            exercise: exerciseData || { name: 'Exercício sem dados', category: 'N/A' }
+          };
+        });
+
+        console.log('DEBUG: Formatted exercises:', formattedExercises);
+        setExercises(formattedExercises);
       }
     } catch (err) {
       console.error('Error fetching workout:', err);
@@ -147,7 +172,7 @@ export const WorkoutExecution: React.FC<WorkoutExecutionProps> = ({ onBack, onFi
           <div className="flex flex-col items-center text-center px-4">
             <h2 className="text-xs font-black uppercase tracking-[0.2em] text-primary italic leading-none mb-1">Execução</h2>
             <p className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-none truncate max-w-[200px]">
-              {currentExercise.exercise.category}
+              {currentExercise?.exercise?.category}
             </p>
           </div>
           <div className="size-10 flex items-center justify-center">
@@ -168,34 +193,56 @@ export const WorkoutExecution: React.FC<WorkoutExecutionProps> = ({ onBack, onFi
       </div>
 
       <main className="flex-1 flex flex-col p-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-        {/* Media Window - GIF/Video */}
-        <div className="relative w-full aspect-[4/3] rounded-[2rem] overflow-hidden bg-slate-100 dark:bg-surface-dark border border-slate-200 dark:border-white/5 shadow-2xl group">
-          {currentExercise.exercise.gif_url ? (
-            <img
-              src={currentExercise.exercise.gif_url}
-              alt={currentExercise.exercise.name}
-              className="w-full h-full object-cover"
-            />
+        {/* Janela de Mídia - GIF/Vídeo */}
+        <div className="relative w-full aspect-[4/3] rounded-[2rem] overflow-hidden bg-slate-100 dark:bg-surface-dark border border-slate-200 dark:border-white/5 shadow-2xl flex items-center justify-center">
+          {(currentExercise?.exercise?.gif_url || currentExercise?.exercise?.thumbnail_url) ? (
+            (() => {
+              const mediaUrl = currentExercise.exercise.gif_url || currentExercise.exercise.thumbnail_url || '';
+              if (mediaUrl.toLowerCase().match(/\.(mp4|webm|ogg)$/)) {
+                return (
+                  <video
+                    key={mediaUrl}
+                    src={mediaUrl}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="w-full h-full object-contain"
+                  />
+                );
+              }
+              return (
+                <div
+                  key={mediaUrl}
+                  className="w-full h-full bg-center bg-no-repeat bg-contain"
+                  style={{ backgroundImage: `url("${mediaUrl}")` }}
+                  role="img"
+                  aria-label={currentExercise.exercise.name}
+                />
+              );
+            })()
           ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center gap-4 text-slate-300 dark:text-slate-700">
+            <div className="flex flex-col items-center justify-center gap-4 text-slate-300 dark:text-slate-700">
               <Icon name="play_circle" className="text-7xl" />
-              <p className="text-[10px] font-black uppercase tracking-[0.3em]">Visualização Indisponível</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.3em]">Mídia não disponível</p>
             </div>
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none"></div>
+
           <div className="absolute bottom-6 left-6 right-6">
             <h1 className="text-white text-2xl font-black uppercase italic tracking-tight leading-tight mb-1 drop-shadow-md">
-              {currentExercise.exercise.name}
+              {currentExercise?.exercise?.name || 'Carregando...'}
             </h1>
             <div className="flex gap-4 items-center">
               <div className="flex items-center gap-1.5 text-white/80">
                 <Icon name="repeat" className="text-sm" />
-                <span className="text-xs font-bold uppercase tracking-widest">{currentExercise.sets} Séries</span>
+                <span className="text-xs font-bold uppercase tracking-widest">{currentExercise?.sets || 0} Séries</span>
               </div>
               <div className="w-px h-3 bg-white/20"></div>
               <div className="flex items-center gap-1.5 text-white/80">
                 <Icon name="history" className="text-sm" />
-                <span className="text-xs font-bold uppercase tracking-widest">{currentExercise.reps} Reps</span>
+                <span className="text-xs font-bold uppercase tracking-widest">{currentExercise?.reps || '0'} Reps</span>
               </div>
             </div>
           </div>
@@ -213,8 +260,8 @@ export const WorkoutExecution: React.FC<WorkoutExecutionProps> = ({ onBack, onFi
                 key={idx}
                 onClick={() => toggleSet(idx)}
                 className={`flex flex-col items-center justify-center aspect-square rounded-2xl border-2 transition-all duration-300 ${done
-                    ? 'bg-primary border-primary text-white shadow-lg shadow-primary/30 active:scale-95'
-                    : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-400 active:scale-95'
+                  ? 'bg-primary border-primary text-white shadow-lg shadow-primary/30 active:scale-95'
+                  : 'bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-400 active:scale-95'
                   }`}
               >
                 <span className={`text-lg font-black italic ${done ? 'text-white' : 'text-slate-400'}`}>{idx + 1}</span>

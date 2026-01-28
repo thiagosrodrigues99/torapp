@@ -7,8 +7,7 @@ import { RunMonitoring } from './components/RunMonitoring';
 import { PersonalTrainer } from './components/PersonalTrainer';
 import { RecipesList } from './components/RecipesList';
 import { RecipeDetails } from './components/RecipeDetails';
-import { Agenda } from './components/Agenda';
-import { ScheduleNew } from './components/ScheduleNew';
+
 import { Community } from './components/Community';
 import { AllMedals } from './components/AllMedals';
 import { Login } from './components/Login';
@@ -24,8 +23,9 @@ export default function App() {
   const [userRole, setUserRole] = useState<'user' | 'admin' | 'influencer' | null>(null);
   const [isRegistering, setIsRegistering] = useState(false);
   const [isRecoveringPassword, setIsRecoveringPassword] = useState(false);
-  const [view, setView] = useState<'dashboard' | 'workout-selection' | 'workout-execution' | 'edit-profile' | 'run-monitoring' | 'personal-trainer' | 'recipes-list' | 'recipe-details' | 'agenda' | 'community' | 'schedule-new' | 'all-medals'>('dashboard');
+  const [view, setView] = useState<'dashboard' | 'workout-selection' | 'workout-execution' | 'edit-profile' | 'run-monitoring' | 'personal-trainer' | 'recipes-list' | 'recipe-details' | 'community' | 'all-medals'>('dashboard');
   const [loading, setLoading] = useState(true);
+  const [selectedMuscleGroups, setSelectedMuscleGroups] = useState<string[]>([]);
 
   useEffect(() => {
     // Monitor auth state changes
@@ -132,14 +132,13 @@ export default function App() {
   }
 
   // Influencer View
-  if (userRole === 'influencer') {
-    return <InfluencerDashboard onLogout={handleLogout} />;
+  if (userRole === 'influencer' && view === 'dashboard') {
+    return <InfluencerDashboard onLogout={handleLogout} onEditProfile={() => setView('edit-profile')} />;
   }
 
   // User View Logic
   const handleNavigate = (tab: string) => {
     if (tab === 'dashboard') setView('dashboard');
-    if (tab === 'agenda') setView('agenda');
     if (tab === 'community') setView('community');
   };
 
@@ -151,7 +150,10 @@ export default function App() {
     return (
       <WorkoutSelection
         onBack={() => setView('dashboard')}
-        onStart={() => setView('workout-execution')}
+        onStart={(groups) => {
+          setSelectedMuscleGroups(groups);
+          setView('workout-execution');
+        }}
       />
     );
   }
@@ -161,6 +163,7 @@ export default function App() {
       <WorkoutExecution
         onBack={() => setView('workout-selection')}
         onFinish={() => setView('dashboard')}
+        selectedGroups={selectedMuscleGroups}
       />
     );
   }
@@ -181,18 +184,7 @@ export default function App() {
     return <RecipeDetails onBack={() => setView('recipes-list')} />;
   }
 
-  if (view === 'agenda') {
-    return (
-      <>
-        <Agenda onBack={() => setView('dashboard')} onScheduleClick={() => setView('schedule-new')} />
-        <BottomNavigation currentTab={view} onNavigate={handleNavigate} />
-      </>
-    );
-  }
 
-  if (view === 'schedule-new') {
-    return <ScheduleNew onBack={() => setView('agenda')} onConfirm={() => setView('agenda')} />;
-  }
 
   if (view === 'community') {
     return (
@@ -215,7 +207,7 @@ export default function App() {
       onNavigate={handleNavigate}
       currentTab={view}
       onSeeAllMedals={() => setView('all-medals')}
-      onStartWorkout={() => setView('workout-execution')}
+      onStartWorkout={() => setView('workout-selection')}
       onRunClick={() => setView('run-monitoring')}
       onRecipesClick={() => setView('recipes-list')}
       onPersonalTrainerClick={() => setView('personal-trainer')}

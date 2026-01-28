@@ -87,31 +87,34 @@ export const ExerciseBank: React.FC<ExerciseBankProps> = ({ onBack }) => {
     try {
       setUploading(true);
       const fileExt = file.name.split('.').pop();
-      const baseFileName = `${Math.random().toString(36).substring(2)}`;
+      const baseFileName = `${Date.now()}-${Math.random().toString(36).substring(2)}`;
       const fileName = `${baseFileName}.${fileExt}`;
       const filePath = `gifs/${fileName}`;
 
-      // 1. Upload Original GIF
+      // 1. Upload do Arquivo para o Storage
       const { error: uploadError } = await supabase.storage
         .from('exercise-gifs')
-        .upload(filePath, file);
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
       if (uploadError) throw uploadError;
 
-      const { data: originalData } = supabase.storage
+      // 2. Gerar a URL Pública permanente
+      const { data: publicUrlData } = supabase.storage
         .from('exercise-gifs')
         .getPublicUrl(filePath);
 
-      setGifUrl(originalData.publicUrl);
+      const publicUrl = publicUrlData.publicUrl;
+      console.log('Link do GIF gerado com sucesso:', publicUrl);
 
-      // 2. Try Thumbnail (with Timeout)
-      const thumbnailPromise = generateThumbnail(file);
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Timeout thumbnail')), 5000)
-      );
+      setGifUrl(publicUrl);
+      setThumbnailUrl(publicUrl); // Define a miniatura como o próprio GIF por padrão
 
+      // 3. Tentar gerar uma miniatura menor se for possível, mas sem bloquear
       try {
-        const thumbBlob = await Promise.race([thumbnailPromise, timeoutPromise]) as Blob;
+        const thumbBlob = await generateThumbnail(file);
         const thumbPath = `thumbnails/${baseFileName}_thumb.png`;
 
         const { error: thumbError } = await supabase.storage
@@ -125,16 +128,14 @@ export const ExerciseBank: React.FC<ExerciseBankProps> = ({ onBack }) => {
           setThumbnailUrl(thumbData.publicUrl);
         }
       } catch (thumbErr) {
-        console.warn('Thumbnail skipped:', thumbErr);
-        setThumbnailUrl(originalData.publicUrl); // Fallback to original
+        console.warn('Miniatura automática pulada, usando URL original.');
       }
 
     } catch (error: any) {
-      console.error('Upload error:', error);
-      alert('Erro ao fazer upload: ' + (error.message || 'Erro desconhecido'));
+      console.error('Erro no upload:', error);
+      alert('Erro ao processar o arquivo: ' + (error.message || 'Erro desconhecido'));
     } finally {
       setUploading(false);
-      // Reset input value to allow re-upload of same file
       event.target.value = '';
     }
   };

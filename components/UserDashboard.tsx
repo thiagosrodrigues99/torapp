@@ -29,11 +29,11 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
   onPersonalTrainerClick,
   onStartChallenge
 }) => {
-  const [waterAmount, setWaterAmount] = useState(1500); // Meta inicial de 1.5L
-  const [showGoalModal, setShowGoalModal] = useState(false);
   const [activePlan, setActivePlan] = useState<{ name: string; category: string } | null>(null);
   const [loadingPlan, setLoadingPlan] = useState(true);
-  const waterGoal = 3000; // Meta de 3L
+  const [activeCoupon, setActiveCoupon] = useState<string | null>(null);
+  const [couponInput, setCouponInput] = useState('');
+  const [applyingCoupon, setApplyingCoupon] = useState(false);
 
   React.useEffect(() => {
     fetchUserPlan();
@@ -46,11 +46,15 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
 
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('assigned_plan_id, gender')
+        .select('assigned_plan_id, gender, coupon')
         .eq('id', session.user.id)
         .single();
 
       if (profileError) throw profileError;
+
+      if (profile.coupon) {
+        setActiveCoupon(profile.coupon);
+      }
 
       let planId = profile.assigned_plan_id;
 
@@ -86,17 +90,40 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
     }
   };
 
-  const handleAddWater = () => {
-    setWaterAmount(prev => {
-      const next = Math.min(waterGoal, prev + 250);
-      if (next >= waterGoal && prev < waterGoal) {
-        setShowGoalModal(true);
-      }
-      return next;
-    });
+  const handleApplyCoupon = async () => {
+    if (!couponInput.trim()) return;
+
+    try {
+      setApplyingCoupon(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({ coupon: couponInput.trim().toUpperCase() })
+        .eq('id', session.user.id);
+
+      if (error) throw error;
+
+      setActiveCoupon(couponInput.trim().toUpperCase());
+      setCouponInput('');
+      alert('Cupom aplicado com sucesso!');
+    } catch (err) {
+      console.error('Error applying coupon:', err);
+      alert('Erro ao aplicar cupom. Tente novamente.');
+    } finally {
+      setApplyingCoupon(false);
+    }
   };
 
-  const waterPercentage = Math.round((waterAmount / waterGoal) * 100);
+  const handleCopyCoupon = () => {
+    if (activeCoupon) {
+      navigator.clipboard.writeText(activeCoupon);
+      alert('Cupom copiado para a área de transferência!');
+    }
+  };
+
+
   return (
     <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white min-h-screen pb-40 font-display">
       {/* Top Bar */}
@@ -150,21 +177,60 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
           <Icon name="chevron_right" className="text-[#f0f0f0]/30" />
         </button>
 
-        {/* Coupon Active */}
-        <div className="flex items-center justify-between bg-card-nutrition border border-dashed border-white/20 p-4 rounded-xl">
-          <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-full bg-white/5">
-              <Icon name="confirmation_number" className="text-[#f0f0f0]/60 text-xl" />
+        {/* Coupon Input/Display Section */}
+        {activeCoupon ? (
+          <div className="flex items-center justify-between bg-card-nutrition border border-dashed border-white/20 p-4 rounded-xl animate-in fade-in slide-in-from-top-4 duration-500">
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-full bg-white/5">
+                <Icon name="confirmation_number" className="text-[#f0f0f0]/60 text-xl" />
+              </div>
+              <div className="flex-1">
+                <p className="text-[10px] text-white/40 uppercase font-bold tracking-wider">Cupom Ativo</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-[#f0f0f0] font-bold text-base tracking-widest uppercase">{activeCoupon}</p>
+                  <button
+                    onClick={() => setActiveCoupon(null)}
+                    className="text-[10px] text-primary font-bold uppercase hover:underline"
+                  >
+                    Trocar
+                  </button>
+                </div>
+              </div>
             </div>
-            <div>
-              <p className="text-[10px] text-white/40 uppercase font-bold tracking-wider">Cupom Ativo</p>
-              <p className="text-[#f0f0f0] font-bold text-base tracking-widest">FIT2024</p>
-            </div>
+            <button
+              onClick={handleCopyCoupon}
+              className="size-10 flex items-center justify-center rounded-lg bg-white/5 active:bg-white/10 text-white/60 transition-colors"
+            >
+              <Icon name="content_copy" className="text-xl" />
+            </button>
           </div>
-          <button className="size-10 flex items-center justify-center rounded-lg bg-white/5 active:bg-white/10 text-white/60">
-            <Icon name="content_copy" className="text-xl" />
-          </button>
-        </div>
+        ) : (
+          <div className="bg-white dark:bg-surface-dark p-1 rounded-xl shadow-sm border border-slate-100 dark:border-white/5 flex gap-1">
+            <div className="flex-1 relative flex items-center">
+              <div className="absolute left-3 text-slate-400">
+                <Icon name="confirmation_number" className="text-xl" />
+              </div>
+              <input
+                type="text"
+                placeholder="DIGITE SEU CUPOM"
+                value={couponInput}
+                onChange={(e) => setCouponInput(e.target.value)}
+                className="w-full bg-transparent h-12 pl-11 pr-4 text-xs font-black tracking-widest uppercase focus:outline-none dark:text-white"
+              />
+            </div>
+            <button
+              onClick={handleApplyCoupon}
+              disabled={applyingCoupon || !couponInput.trim()}
+              className="bg-primary hover:bg-primary/90 disabled:opacity-50 text-white px-6 rounded-lg h-12 text-xs font-black transition-all active:scale-95 shadow-md flex items-center justify-center gap-2"
+            >
+              {applyingCoupon ? (
+                <div className="size-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+              ) : (
+                'ATIVAR'
+              )}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Medals */}
@@ -183,42 +249,40 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
         </div>
       </div>
 
-      {/* Hydration */}
-      <div className="p-4">
-        <div className="flex items-stretch justify-between gap-4 rounded-xl bg-white dark:bg-surface-dark p-5 shadow-sm border border-slate-100 dark:border-white/5">
-          <div className="flex flex-col justify-between flex-1">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <Icon name="opacity" className="text-blue-500 text-lg" />
-                <p className="text-base font-bold leading-tight">Meta de Água</p>
-              </div>
-              <p className="text-slate-500 dark:text-[#bc9aa3] text-sm font-normal">{(waterAmount / 1000).toFixed(1)}L de {(waterGoal / 1000).toFixed(1)}L</p>
-            </div>
-            <div className="mt-4">
-              <div className="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full mb-4">
-                <div className="bg-blue-500 h-2 rounded-full transition-all duration-500" style={{ width: `${waterPercentage}%` }}></div>
-              </div>
-              <button
-                onClick={handleAddWater}
-                className="flex items-center justify-center rounded-lg h-10 px-4 bg-blue-500/10 text-blue-500 gap-2 text-sm font-bold w-full active:scale-95 transition-transform"
-              >
-                <Icon name="add" className="text-lg" />
-                <span className="truncate">Adicionar 250ml</span>
-              </button>
-            </div>
-          </div>
-          <div className="w-32 bg-center bg-no-repeat aspect-square bg-contain flex items-center justify-center bg-blue-500/5 rounded-xl border border-blue-500/10" style={{ backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuBShVvjEur9hZfcEE6wYioT09LPrsOSl7N4kMYfZOGpjisXXsOJWkoQN-KquVEh6Z6kW7EzGnxAj1VdQFX0WO4_LdheQOanQUtMbz4ltXicTH3_wLttf5-bYcCTwNHLzcSRajTLe9n9FTB04Jv2_p-iPuRTqwcrOBMmaiHp7JHg2eHqG0mmgSEgJWcr__IzSm9HOITmRZqGIbuDdp8VTGEZEJ9hoUpAD-_00MZbc6GGplzj-PGidcYxPD-goHcgklpXSCzAN7h81KlU")' }}></div>
-        </div>
-      </div>
+
 
       <WorkoutCard
         onStartWorkout={onStartWorkout}
         planName={activePlan?.name}
         category={activePlan?.category}
         loading={loadingPlan}
-        onNavigateToAgenda={() => onNavigate('agenda')}
         progress={0}
       />
+
+      {/* Promo Card - Only show if coupon exists */}
+      {activeCoupon && (
+        <div className="px-4 mt-8 mb-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <div className="flex items-center gap-2 mb-4">
+            <h3 className="text-lg font-bold leading-tight tracking-tight">Treino Especial</h3>
+            <Icon name="card_membership" className="text-primary text-xl" fill />
+          </div>
+          <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-surface-dark to-primary/20 border border-primary/30 p-5 shadow-xl">
+            <div className="absolute top-0 right-0 p-3">
+              <span className="text-[10px] bg-primary text-white font-black px-2 py-1 rounded">CUPOM ATIVO</span>
+            </div>
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <p className="text-xl font-bold text-white">Full Body Explosive</p>
+                <p className="text-xs text-white/60 mt-1">Treino exclusivo desbloqueado</p>
+              </div>
+            </div>
+            <button onClick={onStartChallenge} className="flex items-center justify-center w-full bg-white text-primary rounded-lg h-12 font-bold transition-all active:scale-95 shadow-lg">
+              <Icon name="bolt" className="mr-2" />
+              INICIAR DESAFIO
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Menu Cards */}
       <div className="px-4 mt-8 space-y-4">
@@ -252,28 +316,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
         />
       </div>
 
-      {/* Promo Card */}
-      <div className="px-4 mt-8 mb-4">
-        <div className="flex items-center gap-2 mb-4">
-          <h3 className="text-lg font-bold leading-tight tracking-tight">Treino Especial</h3>
-          <Icon name="card_membership" className="text-primary text-xl" fill />
-        </div>
-        <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-surface-dark to-primary/20 border border-primary/30 p-5 shadow-xl">
-          <div className="absolute top-0 right-0 p-3">
-            <span className="text-[10px] bg-primary text-white font-black px-2 py-1 rounded">CUPOM ATIVO</span>
-          </div>
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <p className="text-xl font-bold text-white">Full Body Explosive</p>
-              <p className="text-xs text-white/60 mt-1">Treino exclusivo desbloqueado</p>
-            </div>
-          </div>
-          <button onClick={onStartChallenge} className="flex items-center justify-center w-full bg-white text-primary rounded-lg h-12 font-bold transition-all active:scale-95 shadow-lg">
-            <Icon name="bolt" className="mr-2" />
-            INICIAR DESAFIO
-          </button>
-        </div>
-      </div>
+
 
       {/* Logout */}
       <div className="px-4 mt-12 mb-32 flex justify-center">
@@ -292,36 +335,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
       {/* Bottom Navigation */}
       <BottomNavigation currentTab={currentTab} onNavigate={onNavigate} />
 
-      {/* Hydration Goal Modal */}
-      {showGoalModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-white dark:bg-surface-dark w-full max-w-sm rounded-[2.5rem] p-8 flex flex-col items-center text-center shadow-2xl border border-primary/20 animate-in zoom-in-95 duration-300">
-            <div className="relative mb-6">
-              <div className="absolute inset-0 bg-primary/20 rounded-full blur-2xl animate-pulse"></div>
-              <div className="relative size-24 bg-gradient-to-br from-primary to-primary/60 rounded-full flex items-center justify-center shadow-lg shadow-primary/30">
-                <Icon name="emoji_events" className="text-white text-5xl animate-bounce" />
-              </div>
-            </div>
 
-            <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase italic tracking-tight mb-2">Meta Batida!</h2>
-            <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-8">
-              Parabéns! Você atingiu sua meta de hidratação diária de <span className="text-primary font-bold">3.0L</span>. Seu corpo agradece!
-            </p>
-
-            <button
-              onClick={() => setShowGoalModal(false)}
-              className="w-full h-14 bg-primary hover:bg-primary/90 text-white font-bold text-lg rounded-2xl shadow-lg shadow-primary/20 active:scale-95 transition-all"
-            >
-              CONTINUAR
-            </button>
-
-            <div className="mt-4 flex items-center gap-1.5 opacity-50">
-              <Icon name="stars" className="text-primary text-xs" fill />
-              <p className="text-[10px] font-bold uppercase tracking-widest">+50 PONTOS GANHOS</p>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

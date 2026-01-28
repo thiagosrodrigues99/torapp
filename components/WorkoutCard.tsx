@@ -7,7 +7,7 @@ interface WorkoutCardProps {
   category?: string;
   progress?: number;
   loading?: boolean;
-  onNavigateToAgenda?: () => void;
+
 }
 
 export const WorkoutCard: React.FC<WorkoutCardProps> = ({
@@ -15,8 +15,7 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
   planName,
   category,
   progress = 0,
-  loading = false,
-  onNavigateToAgenda
+  loading = false
 }) => {
   return (
     <div className="px-4 mt-2">
@@ -56,12 +55,7 @@ export const WorkoutCard: React.FC<WorkoutCardProps> = ({
           <div className="py-8 text-center">
             <Icon name="fitness_center" className="text-slate-300 dark:text-slate-100/10 text-4xl mb-2" />
             <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mb-4">Você ainda não tem um plano atribuído.</p>
-            <button
-              onClick={onNavigateToAgenda}
-              className="text-primary font-bold text-sm uppercase tracking-wider hover:underline"
-            >
-              Ver Agenda de Treinos
-            </button>
+
           </div>
         )}
       </div>
