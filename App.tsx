@@ -27,6 +27,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [selectedMuscleGroups, setSelectedMuscleGroups] = useState<string[]>([]);
   const [selectedRecipeId, setSelectedRecipeId] = useState<string | null>(null);
+  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
 
   useEffect(() => {
     // Monitor auth state changes
@@ -161,7 +162,10 @@ export default function App() {
 
   // User View Logic
   const handleNavigate = (tab: string) => {
-    if (tab === 'dashboard') setView('dashboard');
+    if (tab === 'dashboard') {
+      setView('dashboard');
+      setSelectedPlanId(null);
+    }
     if (tab === 'community') setView('community');
   };
 
@@ -172,7 +176,10 @@ export default function App() {
   if (view === 'workout-selection') {
     return (
       <WorkoutSelection
-        onBack={() => setView('dashboard')}
+        onBack={() => {
+          setView('dashboard');
+          setSelectedPlanId(null);
+        }}
         onStart={(groups) => {
           setSelectedMuscleGroups(groups);
           setView('workout-execution');
@@ -184,9 +191,20 @@ export default function App() {
   if (view === 'workout-execution') {
     return (
       <WorkoutExecution
-        onBack={() => setView('workout-selection')}
-        onFinish={() => setView('dashboard')}
+        onBack={() => {
+          if (selectedPlanId) {
+            setView('dashboard');
+            setSelectedPlanId(null);
+          } else {
+            setView('workout-selection');
+          }
+        }}
+        onFinish={() => {
+          setView('dashboard');
+          setSelectedPlanId(null);
+        }}
         selectedGroups={selectedMuscleGroups}
+        planId={selectedPlanId || undefined}
       />
     );
   }
@@ -238,11 +256,22 @@ export default function App() {
       onNavigate={handleNavigate}
       currentTab={view}
       onSeeAllMedals={() => setView('all-medals')}
-      onStartWorkout={() => setView('workout-selection')}
+      onStartWorkout={() => {
+        setSelectedPlanId(null);
+        setView('workout-selection');
+      }}
       onRunClick={() => setView('run-monitoring')}
       onRecipesClick={() => setView('recipes-list')}
       onPersonalTrainerClick={() => setView('personal-trainer')}
-      onStartChallenge={() => setView('workout-selection')}
+      onStartChallenge={() => {
+        setSelectedPlanId(null);
+        setView('workout-execution');
+      }}
+      onHomeWorkoutClick={() => {
+        setSelectedPlanId('433e018a-1e6f-4a09-9b91-49b2c431cfdd');
+        setSelectedMuscleGroups([]);
+        setView('workout-execution');
+      }}
     />
   );
 }

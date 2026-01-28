@@ -15,6 +15,7 @@ interface UserDashboardProps {
   onRecipesClick: () => void;
   onPersonalTrainerClick: () => void;
   onStartChallenge: () => void;
+  onHomeWorkoutClick: () => void;
 }
 
 interface Medal {
@@ -34,7 +35,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
   onRunClick,
   onRecipesClick,
   onPersonalTrainerClick,
-  onStartChallenge
+  onStartChallenge,
+  onHomeWorkoutClick
 }) => {
   const [activePlan, setActivePlan] = useState<{ name: string; category: string } | null>(null);
   const [loadingPlan, setLoadingPlan] = useState(true);
@@ -372,7 +374,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
           title="Treino em Casa"
           subtitle="Exercícios para fazer onde estiver"
           buttonText="INICIAR"
-          onClick={onStartWorkout}
+          onClick={onHomeWorkoutClick}
         />
         <MenuCard
           icon="directions_run"
