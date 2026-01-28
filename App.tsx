@@ -75,14 +75,17 @@ export default function App() {
   const handleLogout = async () => {
     try {
       console.log('Iniciando logout...');
-      await supabase.auth.signOut();
+      // Tentativa de signout no Supabase
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
     } catch (error) {
       console.error('Erro ao sair:', error);
+      // Opcional: mostrar erro visual ao usuário se desejar
     } finally {
-      // Garante que o estado seja limpo mesmo se o signOut falhar (ex: rede offline)
+      // Garante que o estado seja limpo imediatamente
       setUserRole(null);
       setView('dashboard'); // Volta para a tela inicial
-      console.log('Estado de usuário limpo.');
+      console.log('Logout finalizado e estado limpo.');
     }
   };
 
