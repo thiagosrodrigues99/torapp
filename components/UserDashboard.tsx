@@ -131,27 +131,204 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
     }
   };
 
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [pixData, setPixData] = useState<{ paymentId: string; qrCodeText: string; qrCodeBase64?: string; amount: number } | null>(null);
+  const [selectedInfluencer, setSelectedInfluencer] = useState<any>(null);
+
   const handleApplyCoupon = async () => {
     if (!couponInput.trim()) return;
+    const code = couponInput.trim().toUpperCase();
 
     try {
       setApplyingCoupon(true);
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      const { error } = await supabase
+      // 1. Verify if coupon exists (is an influencer)
+      const { data: influencer, error: infError } = await supabase
         .from('profiles')
-        .update({ coupon: couponInput.trim().toUpperCase() })
-        .eq('id', session.user.id);
+        .select('*')
+        .eq('role', 'influencer')
+        .eq('coupon', code)
+        .maybeSingle();
 
-      if (error) throw error;
+      if (infError) throw infError;
+      if (!influencer) {
+        alert('Cupom não encontrado ou inválido.');
+        return;
+      }
 
-      setActiveCoupon(couponInput.trim().toUpperCase());
-      setCouponInput('');
-      alert('Cupom aplicado com sucesso!');
+      // 2. Check if user already paid for THIS influencer's workout
+      const { data: existingPayment } = await supabase
+        .from('financial_transactions')
+        .select('id')
+        .eq('user_id', session.user.id)
+        .eq('influencer_id', influencer.id)
+        .eq('type', 'payment')
+        .maybeSingle();
+
+      if (existingPayment) {
+        // Already paid, just activate
+        await activateUserCoupon(session.user.id, code);
+        return;
+      }
+
+      // 3. Not paid, open checkout
+      setSelectedInfluencer(influencer);
+      setShowCheckout(true);
+
     } catch (err) {
       console.error('Error applying coupon:', err);
-      alert('Erro ao aplicar cupom. Tente novamente.');
+      alert('Erro ao processar cupom.');
+    } finally {
+      setApplyingCoupon(false);
+    }
+  };
+
+  const activateUserCoupon = async (userId: string, coupon: string, influencerId?: string, amount?: number) => {
+    try {
+      setApplyingCoupon(true);
+
+      // Update profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          coupon: coupon,
+          status: 'Ativo'
+        })
+        .eq('id', userId);
+
+      if (profileError) throw profileError;
+
+      // If this was a new payment, record it
+      if (influencerId && amount) {
+        await supabase.from('financial_transactions').insert({
+          user_id: userId,
+          influencer_id: influencerId,
+          amount: amount,
+          type: 'payment',
+          description: `Adesão via Cupom: ${coupon}`
+        });
+      }
+
+      setActiveCoupon(coupon);
+      setCouponInput('');
+      setShowCheckout(false);
+      setPixData(null);
+      alert('Parabéns! Seu acesso foi ativado com sucesso. Aproveite seus treinos! 🚀');
+      fetchUserPlan();
+    } catch (err) {
+      console.error('Error activating coupon:', err);
+      alert('Erro ao ativar acesso. Entre em contato com o suporte.');
+    } finally {
+      setApplyingCoupon(false);
+    }
+  };
+
+  const generatePix = async () => {
+    if (!selectedInfluencer) return;
+
+    try {
+      setApplyingCoupon(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const keysStr = localStorage.getItem('torapp_mercadopago_keys');
+      if (!keysStr) {
+        // Fallback simulation if no key configured
+        alert('Configurações do Mercado Pago não encontradas no Admin. Simulando PIX para testes...');
+        setPixData({
+          paymentId: 'simulated',
+          qrCodeText: '00020126580014BR.GOV.BCB.PIX0136...FAKE_PIX_QR_CODE...',
+          amount: selectedInfluencer.workout_price || 79.90
+        });
+        return;
+      }
+
+      const keys = JSON.parse(keysStr);
+      const price = selectedInfluencer.workout_price || 79.90;
+
+      const response = await fetch('/mp-api/v1/payments', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${keys.accessToken}`,
+          'Content-Type': 'application/json',
+          'X-Idempotency-Key': `pay-${session.user.id}-${Date.now()}`
+        },
+        body: JSON.stringify({
+          transaction_amount: price,
+          description: `Treino TorApp - ${selectedInfluencer.full_name}`,
+          payment_method_id: 'pix',
+          payer: {
+            email: session.user.email,
+            first_name: userData.fullName.split(' ')[0],
+            last_name: userData.fullName.split(' ').slice(1).join(' ') || 'User'
+          }
+        })
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.message || 'Erro ao gerar PIX');
+      }
+
+      const payment = await response.json();
+      setPixData({
+        paymentId: payment.id.toString(),
+        qrCodeText: payment.point_of_interaction.transaction_data.qr_code,
+        qrCodeBase64: payment.point_of_interaction.transaction_data.qr_code_base64,
+        amount: price
+      });
+
+    } catch (err) {
+      console.error('Error generating PIX:', err);
+      alert('Não foi possível gerar o PIX. Tente novamente ou use outro cupom.');
+    } finally {
+      setApplyingCoupon(false);
+    }
+  };
+
+  const checkPaymentStatus = async () => {
+    if (!pixData?.paymentId) return;
+
+    try {
+      setApplyingCoupon(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const keysStr = localStorage.getItem('torapp_mercadopago_keys');
+      if (!keysStr) {
+        if (pixData.paymentId === 'simulated') {
+          await activateUserCoupon(session.user.id, selectedInfluencer.coupon, selectedInfluencer.id, pixData.amount);
+          return;
+        }
+        alert('Configurações do Mercado Pago não encontradas.');
+        return;
+      }
+
+      const keys = JSON.parse(keysStr);
+      const response = await fetch(`/mp-api/v1/payments/${pixData.paymentId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${keys.accessToken}`
+        }
+      });
+
+      if (!response.ok) throw new Error('Erro ao consultar status do pagamento');
+
+      const payment = await response.json();
+
+      if (payment.status === 'approved') {
+        await activateUserCoupon(session.user.id, selectedInfluencer.coupon, selectedInfluencer.id, pixData.amount);
+      } else if (payment.status === 'pending') {
+        alert('O pagamento ainda está pendente. Por favor, complete o pagamento no seu banco e aguarde alguns segundos.');
+      } else {
+        alert(`Status do pagamento: ${payment.status}. Se você já pagou, entre em contato com o suporte.`);
+      }
+
+    } catch (err) {
+      console.error('Error checking payment:', err);
+      alert('Erro ao verificar pagamento. Tente novamente em alguns instantes.');
     } finally {
       setApplyingCoupon(false);
     }
@@ -418,7 +595,100 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
       {/* Bottom Navigation */}
       <BottomNavigation currentTab={currentTab} onNavigate={onNavigate} />
 
+      {/* Checkout Overlay */}
+      {showCheckout && (
+        <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl animate-in fade-in duration-300 flex flex-col items-center justify-center p-6">
+          <div className="w-full max-w-sm bg-[#1a1a1a] border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl relative">
+            {/* Close Button */}
+            <button
+              onClick={() => setShowCheckout(false)}
+              className="absolute top-6 right-6 size-10 rounded-full bg-white/5 flex items-center justify-center text-white/40 hover:text-white transition-colors cursor-pointer"
+            >
+              <Icon name="close" />
+            </button>
 
+            <div className="p-8 pt-12 flex flex-col items-center text-center">
+              <div className="size-20 rounded-3xl bg-primary/10 flex items-center justify-center text-primary mb-6 shadow-lg shadow-primary/5">
+                <Icon name="shopping_basket" className="text-4xl" />
+              </div>
+
+              {!pixData ? (
+                <>
+                  <h3 className="text-2xl font-black text-white uppercase italic leading-tight mb-2">Checkout TorApp</h3>
+                  <p className="text-sm text-slate-400 mb-8 px-4 font-medium leading-relaxed italic">
+                    Você está prestes a desbloquear o treino de <span className="text-white font-bold">{selectedInfluencer?.full_name}</span>.
+                  </p>
+
+                  <div className="w-full bg-white/5 border border-white/5 rounded-2xl p-6 mb-8">
+                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Valor do Investimento</p>
+                    <p className="text-4xl font-black text-white italic">
+                      {(selectedInfluencer?.workout_price || 79.90).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={generatePix}
+                    disabled={applyingCoupon}
+                    className="w-full h-16 bg-primary text-white font-black rounded-2xl shadow-2xl shadow-primary/30 hover:brightness-110 active:scale-[0.98] transition-all uppercase tracking-[0.3em] text-xs italic flex items-center justify-center gap-3"
+                  >
+                    {applyingCoupon ? <Icon name="sync" className="animate-spin" /> : <Icon name="bolt" />}
+                    {applyingCoupon ? 'Processando...' : 'Pagar com PIX'}
+                  </button>
+                </>
+              ) : (
+                <div className="w-full">
+                  <h3 className="text-xl font-black text-white uppercase italic leading-tight mb-6">Escaneie o QR Code</h3>
+
+                  <div className="bg-white p-4 rounded-3xl mb-6 shadow-xl w-64 h-64 mx-auto flex items-center justify-center">
+                    {pixData.qrCodeBase64 ? (
+                      <img
+                        src={`data:image/png;base64,${pixData.qrCodeBase64}`}
+                        alt="QR Code PIX"
+                        className="w-full h-full"
+                      />
+                    ) : (
+                      <img
+                        src={`https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl=${encodeURIComponent(pixData.qrCodeText)}`}
+                        alt="QR Code PIX"
+                        className="w-full h-full"
+                      />
+                    )}
+                  </div>
+
+                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-6">Clique no código abaixo para copiar</p>
+
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(pixData.qrCodeText);
+                      alert('Código PIX Copia e Cola copiado!');
+                    }}
+                    className="w-full p-4 rounded-xl bg-black/40 border border-white/5 font-mono text-[9px] text-slate-400 break-all leading-relaxed mb-8 hover:bg-black/60 transition-colors"
+                  >
+                    {pixData.qrCodeText}
+                  </button>
+
+                  <div className="flex flex-col gap-3">
+                    <button
+                      onClick={checkPaymentStatus}
+                      disabled={applyingCoupon}
+                      className="w-full h-14 bg-emerald-500 text-white font-black rounded-xl hover:brightness-110 active:scale-[0.98] transition-all uppercase tracking-widest text-xs italic flex items-center justify-center gap-2"
+                    >
+                      {applyingCoupon ? <Icon name="sync" className="animate-spin" /> : <Icon name="check_circle" />}
+                      {applyingCoupon ? 'Verificando...' : 'Já Realizei o Pagamento'}
+                    </button>
+                    <button
+                      onClick={() => setPixData(null)}
+                      className="w-full h-12 bg-transparent text-slate-500 font-bold hover:text-white transition-colors uppercase tracking-widest text-[10px]"
+                    >
+                      Voltar
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

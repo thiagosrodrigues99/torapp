@@ -8,12 +8,13 @@ import { RecipesManagement } from './RecipesManagement';
 import { ExerciseBank } from './ExerciseBank';
 import { FinanceManagement } from './FinanceManagement';
 import { MedalsManagement } from './MedalsManagement';
+import { CheckoutManagement } from './CheckoutManagement';
 
 interface AdminDashboardProps {
   onLogout: () => void;
 }
 
-type AdminView = 'main' | 'workout-management' | 'users' | 'finance' | 'integrations' | 'influencers' | 'recipes' | 'exercises' | 'medals';
+type AdminView = 'main' | 'workout-management' | 'users' | 'finance' | 'integrations' | 'influencers' | 'recipes' | 'exercises' | 'medals' | 'checkout';
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
   const [view, setView] = useState<AdminView>('main');
@@ -48,6 +49,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
 
   if (view === 'medals') {
     return <MedalsManagement onBack={() => setView('main')} />;
+  }
+
+  if (view === 'checkout') {
+    return <CheckoutManagement onBack={() => setView('main')} />;
   }
 
   // Fallback for other unimplemented views
@@ -143,6 +148,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
               title="Gestão de Medalhas"
               subtitle="Gamificação e Conquistas"
               onClick={() => setView('medals')}
+            />
+            <DashboardCard
+              icon="shopping_basket"
+              title="Checkout"
+              subtitle="Oferta & Planos"
+              onClick={() => setView('checkout')}
             />
           </div>
 

@@ -47,7 +47,8 @@ export const MercadoPagoConfig: React.FC<MercadoPagoConfigProps> = ({ onBack }) 
     setTestStatus('testing');
 
     try {
-      const response = await fetch('https://api.mercadopago.com/users/me', {
+      // Usando proxy local para evitar erro de CORS
+      const response = await fetch('/mp-api/users/me', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${keys.accessToken}`
