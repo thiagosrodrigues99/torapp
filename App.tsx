@@ -26,6 +26,7 @@ export default function App() {
   const [view, setView] = useState<'dashboard' | 'workout-selection' | 'workout-execution' | 'edit-profile' | 'run-monitoring' | 'personal-trainer' | 'recipes-list' | 'recipe-details' | 'community' | 'all-medals'>('dashboard');
   const [loading, setLoading] = useState(true);
   const [selectedMuscleGroups, setSelectedMuscleGroups] = useState<string[]>([]);
+  const [selectedRecipeId, setSelectedRecipeId] = useState<string | null>(null);
 
   useEffect(() => {
     // Monitor auth state changes
@@ -199,11 +200,19 @@ export default function App() {
   }
 
   if (view === 'recipes-list') {
-    return <RecipesList onBack={() => setView('dashboard')} onRecipeClick={() => setView('recipe-details')} />;
+    return (
+      <RecipesList
+        onBack={() => setView('dashboard')}
+        onRecipeClick={(id) => {
+          setSelectedRecipeId(id);
+          setView('recipe-details');
+        }}
+      />
+    );
   }
 
-  if (view === 'recipe-details') {
-    return <RecipeDetails onBack={() => setView('recipes-list')} />;
+  if (view === 'recipe-details' && selectedRecipeId) {
+    return <RecipeDetails recipeId={selectedRecipeId} onBack={() => setView('recipes-list')} />;
   }
 
 

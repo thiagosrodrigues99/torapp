@@ -17,6 +17,13 @@ interface UserDashboardProps {
   onStartChallenge: () => void;
 }
 
+interface Medal {
+  id: string;
+  title: string;
+  icon: string;
+  points_required: number;
+}
+
 export const UserDashboard: React.FC<UserDashboardProps> = ({
   onEditProfile,
   onLogout,
@@ -34,6 +41,13 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
   const [activeCoupon, setActiveCoupon] = useState<string | null>(null);
   const [couponInput, setCouponInput] = useState('');
   const [applyingCoupon, setApplyingCoupon] = useState(false);
+  const [userData, setUserData] = useState({
+    fullName: 'Usuário',
+    points: 0,
+    avatarUrl: ''
+  });
+  const [medals, setMedals] = useState<Medal[]>([]);
+  const [earnedMedalIds, setEarnedMedalIds] = useState<string[]>([]);
 
   React.useEffect(() => {
     fetchUserPlan();
@@ -46,11 +60,17 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
 
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('assigned_plan_id, gender, coupon')
+        .select('assigned_plan_id, gender, coupon, full_name, points, avatar_url')
         .eq('id', session.user.id)
         .single();
 
       if (profileError) throw profileError;
+
+      setUserData({
+        fullName: profile.full_name || 'Usuário',
+        points: profile.points || 0,
+        avatarUrl: profile.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.full_name || 'Alun@')}&background=DC003C&color=fff`
+      });
 
       if (profile.coupon) {
         setActiveCoupon(profile.coupon);
@@ -83,6 +103,25 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
         if (planError) throw planError;
         setActivePlan(plan);
       }
+
+      // Fetch all medals
+      const { data: allMedals } = await supabase
+        .from('medals')
+        .select('*')
+        .order('points_required', { ascending: true });
+
+      if (allMedals) setMedals(allMedals);
+
+      // Fetch earned medals
+      const { data: earned } = await supabase
+        .from('user_medals')
+        .select('medal_id')
+        .eq('user_id', session.user.id);
+
+      if (earned) {
+        setEarnedMedalIds(earned.map(e => e.medal_id));
+      }
+
     } catch (err) {
       console.error('Error fetching user plan:', err);
     } finally {
@@ -147,20 +186,25 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
         {/* Profile Card */}
         <div className="flex items-center gap-4 bg-white dark:bg-surface-dark p-5 rounded-xl shadow-sm border border-slate-100 dark:border-white/5">
           <div className="relative">
-            <div className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-20 border-2 border-primary" style={{ backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuANeNZUVtKlRv1f-VdcwLmwm7M1Zw5MoMCBFHJQeYT9TsedZcAd0wuMwA1ayOMkTF-9pZUm52hTp5fBsJgGlaRNOpyg8L_C-OTX_wMyt9GVEohDytdScroGXZMByO47XaCMx09Fi8TqBlzCRaoZhapP2arcPz_hljo_4cvKYg4GDFIPrwVGxecMUxRi_OXlWWP7Q5_bEqPvEoIo8gS4QgEln4God8y6sYvTobnSkHi-lWvFo68wAbWlWJN5OpAQHtJQZdza47DysKPt")' }}></div>
+            <div
+              className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-20 border-2 border-primary"
+              style={{ backgroundImage: `url("${userData.avatarUrl}")` }}
+            ></div>
             <div className="absolute -bottom-1 -right-1 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-full border-2 border-surface-dark">
               PRO
             </div>
           </div>
           <div className="flex flex-col flex-1">
-            <p className="text-xl font-bold leading-tight">João Silva</p>
+            <p className="text-xl font-bold leading-tight">{userData.fullName}</p>
             <div className="flex items-center gap-1.5 mt-1">
               <Icon name="stars" className="text-primary text-sm" fill />
-              <p className="text-slate-500 dark:text-[#bc9aa3] text-sm font-medium">1.250 Pontos</p>
+              <p className="text-slate-500 dark:text-[#bc9aa3] text-sm font-medium">
+                {userData.points.toLocaleString('pt-BR')} Pontos
+              </p>
             </div>
             <div className="mt-2">
-              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-primary/10 text-primary border border-primary/20">
-                Plano Ativo
+              <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold ${activePlan ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-primary/10 text-primary border border-primary/20'}`}>
+                {activePlan ? 'Plano Ativo' : 'Sem Plano'}
               </span>
             </div>
           </div>
@@ -241,10 +285,47 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
         </div>
         <div className="flex w-full overflow-x-auto px-4 py-3 hide-scrollbar">
           <div className="flex flex-row items-start justify-start gap-6">
-            <MedalItem icon="emoji_events" label="7 Dias" color="text-yellow-500" from="from-yellow-300" to="to-orange-500" />
-            <MedalItem icon="water_drop" label="Hidratado" color="text-blue-400" from="from-blue-300" to="to-indigo-500" />
-            <MedalItem icon="fitness_center" label="Maratonista" color="text-slate-500" bg="bg-slate-700" inactive />
-            <MedalItem icon="bolt" label="Elite" color="text-slate-500" bg="bg-slate-700" inactive />
+            {medals.length > 0 ? (
+              medals.map((medal) => {
+                const isEarned = earnedMedalIds.includes(medal.id) || userData.points >= medal.points_required;
+
+                // Color mapping logic
+                let color = "text-slate-500";
+                let from = "";
+                let to = "";
+                let bg = "bg-slate-700";
+
+                if (isEarned) {
+                  bg = "";
+                  if (medal.title === 'Iniciante') { color = "text-yellow-500"; from = "from-yellow-300"; to = "to-orange-500"; }
+                  else if (medal.title === 'Hidratado') { color = "text-blue-400"; from = "from-blue-300"; to = "to-indigo-500"; }
+                  else if (medal.title === 'Maratonista') { color = "text-orange-500"; from = "from-orange-300"; to = "to-red-500"; }
+                  else if (medal.title === 'Elite') { color = "text-yellow-500"; from = "from-yellow-200"; to = "to-amber-500"; }
+                  else { color = "text-primary"; from = "from-primary/50"; to = "to-primary"; }
+                }
+
+                return (
+                  <MedalItem
+                    key={medal.id}
+                    icon={medal.icon}
+                    label={medal.title}
+                    color={color}
+                    from={from}
+                    to={to}
+                    bg={bg}
+                    inactive={!isEarned}
+                    imageUrl={medal.image_url}
+                  />
+                );
+              })
+            ) : (
+              <>
+                <MedalItem icon="emoji_events" label="7 Dias" color="text-yellow-500" from="from-yellow-300" to="to-orange-500" />
+                <MedalItem icon="water_drop" label="Hidratado" color="text-blue-400" from="from-blue-300" to="to-indigo-500" />
+                <MedalItem icon="fitness_center" label="Maratonista" color="text-slate-500" bg="bg-slate-700" inactive />
+                <MedalItem icon="bolt" label="Elite" color="text-slate-500" bg="bg-slate-700" inactive />
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -340,11 +421,15 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
   );
 };
 
-const MedalItem = ({ icon, label, color, from, to, bg, inactive }: { icon: string; label: string; color: string; from?: string; to?: string; bg?: string; inactive?: boolean }) => (
+const MedalItem = ({ icon, label, color, from, to, bg, inactive, imageUrl }: { icon: string; label: string; color: string; from?: string; to?: string; bg?: string; inactive?: boolean; key?: string; imageUrl?: string }) => (
   <div className={`flex flex-col items-center gap-2 w-16 text-center ${inactive ? 'grayscale-filter' : ''}`}>
-    <div className={`w-16 h-16 ${bg ? bg : `bg-gradient-to-br ${from} ${to}`} p-0.5 rounded-full`}>
-      <div className="w-full h-full bg-center bg-no-repeat aspect-square bg-cover rounded-full border-2 border-white/20 flex items-center justify-center bg-surface-dark">
-        <Icon name={icon} className={`${color} text-3xl`} fill={!inactive} />
+    <div className={`w-16 h-16 ${bg ? bg : `bg-gradient-to-br ${from} ${to}`} p-0.5 rounded-full overflow-hidden shadow-lg`}>
+      <div className="w-full h-full bg-center bg-no-repeat aspect-square bg-cover rounded-full border-2 border-white/20 flex items-center justify-center bg-surface-dark overflow-hidden">
+        {imageUrl ? (
+          <img src={imageUrl} className="w-full h-full object-contain" alt={label} />
+        ) : (
+          <Icon name={icon} className={`${color} text-3xl`} fill={!inactive} />
+        )}
       </div>
     </div>
     <p className={`text-[11px] font-medium leading-tight ${inactive ? 'text-slate-500' : ''}`}>{label}</p>

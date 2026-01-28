@@ -15,7 +15,8 @@ export const EditProfile: React.FC<EditProfileProps> = ({ onBack }) => {
     phone: '',
     weight: '',
     height: '',
-    birth_date: ''
+    birth_date: '',
+    avatar_url: ''
   });
 
   useEffect(() => {
@@ -39,9 +40,10 @@ export const EditProfile: React.FC<EditProfileProps> = ({ onBack }) => {
         full_name: data.full_name || '',
         email: session.user.email || '',
         phone: data.phone || '',
-        weight: '', // Columns might not exist yet, using empty for now
-        height: '',
-        birth_date: ''
+        weight: data.weight || '',
+        height: data.height || '',
+        birth_date: data.birth_date || '',
+        avatar_url: data.avatar_url || ''
       });
     } catch (err) {
       console.error('Error fetching profile:', err);
@@ -84,6 +86,9 @@ export const EditProfile: React.FC<EditProfileProps> = ({ onBack }) => {
       </div>
     );
   }
+
+  const avatarUrl = profile.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.full_name || 'U')}&background=DC003C&color=fff`;
+
   return (
     <div className="bg-background-dark text-white min-h-screen flex flex-col font-sans">
       <div className="sticky top-0 z-50 bg-background-dark/95 backdrop-blur-md">
@@ -103,12 +108,58 @@ export const EditProfile: React.FC<EditProfileProps> = ({ onBack }) => {
           <div className="relative">
             <div
               className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-32 border-2 border-primary"
-              style={{ backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuANeNZUVtKlRv1f-VdcwLmwm7M1Zw5MoMCBFHJQeYT9TsedZcAd0wuMwA1ayOMkTF-9pZUm52hTp5fBsJgGlaRNOpyg8L_C-OTX_wMyt9GVEohDytdScroGXZMByO47XaCMx09Fi8TqBlzCRaoZhapP2arcPz_hljo_4cvKYg4GDFIPrwVGxecMUxRi_OXlWWP7Q5_bEqPvEoIo8gS4QgEln4God8y6sYvTobnSkHi-lWvFo68wAbWlWJN5OpAQHtJQZdza47DysKPt")' }}
-            >
-            </div>
-            <button className="absolute bottom-0 right-0 bg-primary text-white p-2 rounded-full border-4 border-background-dark active:scale-95 transition-transform">
+              style={{ backgroundImage: `url("${avatarUrl}")` }}
+            ></div>
+            <label className="absolute bottom-0 right-0 bg-primary text-white p-2 rounded-full border-4 border-background-dark active:scale-95 transition-transform cursor-pointer">
               <Icon name="photo_camera" className="text-xl" />
-            </button>
+              <input
+                type="file"
+                className="hidden"
+                accept="image/*"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+
+                  try {
+                    setSaving(true);
+                    const { data: { session } } = await supabase.auth.getSession();
+                    if (!session) return;
+
+                    const fileExt = file.name.split('.').pop();
+                    const fileName = `${session.user.id}-${Math.random()}.${fileExt}`;
+                    const filePath = `avatars/${fileName}`;
+
+                    // Upload to 'avatars' bucket
+                    const { error: uploadError } = await supabase.storage
+                      .from('avatars')
+                      .upload(filePath, file);
+
+                    if (uploadError) throw uploadError;
+
+                    // Get Public URL
+                    const { data: { publicUrl } } = supabase.storage
+                      .from('avatars')
+                      .getPublicUrl(filePath);
+
+                    // Update profile
+                    const { error: updateError } = await supabase
+                      .from('profiles')
+                      .update({ avatar_url: publicUrl })
+                      .eq('id', session.user.id);
+
+                    if (updateError) throw updateError;
+
+                    setProfile(prev => ({ ...prev, avatar_url: publicUrl }));
+                    alert('Foto atualizada com sucesso!');
+                  } catch (err) {
+                    console.error('Error uploading image:', err);
+                    alert('Erro ao fazer upload da imagem. Certifique-se de que o bucket "avatars" existe no Supabase.');
+                  } finally {
+                    setSaving(false);
+                  }
+                }}
+              />
+            </label>
           </div>
           <p className="mt-4 text-xl font-bold">{profile.full_name || 'Usuário'}</p>
           <p className="text-slate-400 text-sm">Alterar foto de perfil</p>
@@ -188,6 +239,6 @@ export const EditProfile: React.FC<EditProfileProps> = ({ onBack }) => {
           </button>
         </div>
       </div>
-    </div>
+    </div >
   );
 };

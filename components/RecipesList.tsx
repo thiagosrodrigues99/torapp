@@ -1,176 +1,186 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Icon } from './Icon';
+import { supabase } from '../lib/supabase';
 
 interface RecipesListProps {
   onBack: () => void;
-  onRecipeClick: () => void;
+  onRecipeClick: (id: string) => void;
+}
+
+interface Recipe {
+  id: string;
+  title: string;
+  image_url: string;
+  category_id: string;
+  recipe_categories?: {
+    name: string;
+  };
+}
+
+interface Category {
+  id: string;
+  name: string;
 }
 
 export const RecipesList: React.FC<RecipesListProps> = ({ onBack, onRecipeClick }) => {
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCat, setSelectedCat] = useState<string | null>(null);
+  const [isCatMenuOpen, setIsCatMenuOpen] = useState(false);
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const { data: catData } = await supabase.from('recipe_categories').select('*').order('name');
+      if (catData) setCategories(catData);
+
+      const { data: recData } = await supabase
+        .from('recipes')
+        .select('*, recipe_categories(name)')
+        .order('created_at', { ascending: false });
+
+      if (recData) setRecipes(recData);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredRecipes = recipes.filter(r => {
+    const matchesSearch = r.title.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCat = !selectedCat || r.category_id === selectedCat;
+    return matchesSearch && matchesCat;
+  });
+
   return (
     <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white antialiased font-jakarta">
-      <div className="recipe-list-container flex flex-col min-h-screen pb-24">
+      <div className="recipe-list-container flex flex-col min-h-screen pb-24 max-w-[450px] mx-auto">
         <header className="sticky top-0 z-50 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md">
           <div className="flex items-center p-4 justify-between">
-            <div 
+            <div
               onClick={onBack}
               className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
             >
               <Icon name="arrow_back_ios_new" className="text-slate-900 dark:text-white" />
             </div>
-            <h2 className="text-lg font-bold leading-tight tracking-tight flex-1 text-center pr-10">Almoço</h2>
+            <h2 className="text-lg font-bold leading-tight tracking-tight flex-1 text-center pr-10 uppercase italic">Cardápio Fit</h2>
           </div>
         </header>
 
         <div className="px-4 py-2">
-          <button className="w-full flex items-center justify-between bg-card-dark border border-primary-accent rounded-xl px-4 py-3 text-text-main transition-colors active:bg-zinc-800">
-            <div className="flex items-center gap-3">
-              <Icon name="restaurant_menu" className="text-primary-accent" />
-              <span className="font-semibold text-sm">Trocar Categoria</span>
-            </div>
-            <Icon name="expand_more" className="text-primary-accent" />
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => setIsCatMenuOpen(!isCatMenuOpen)}
+              className="w-full flex items-center justify-between bg-card-dark border border-primary/20 rounded-xl px-4 py-3 text-white transition-colors active:bg-zinc-800"
+            >
+              <div className="flex items-center gap-3">
+                <Icon name="restaurant_menu" className="text-primary" />
+                <span className="font-bold text-xs uppercase tracking-widest">{selectedCat ? categories.find(c => c.id === selectedCat)?.name : 'Todas as Categorias'}</span>
+              </div>
+              <Icon name="expand_more" className="text-primary" />
+            </button>
+            {isCatMenuOpen && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-card-dark border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden">
+                <button
+                  onClick={() => { setSelectedCat(null); setIsCatMenuOpen(false); }}
+                  className="w-full p-4 text-left text-xs font-bold uppercase tracking-widest hover:bg-primary/10 border-b border-white/5"
+                >
+                  Todas
+                </button>
+                {categories.map(cat => (
+                  <button
+                    key={cat.id}
+                    onClick={() => { setSelectedCat(cat.id); setIsCatMenuOpen(false); }}
+                    className="w-full p-4 text-left text-xs font-bold uppercase tracking-widest hover:bg-primary/10 border-b border-white/5"
+                  >
+                    {cat.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="px-4 py-2">
-          <label className="flex flex-col min-w-40 h-12 w-full">
-            <div className="flex w-full flex-1 items-stretch rounded-xl h-full">
-              <div className="text-primary flex border-none bg-slate-200 dark:bg-card-dark items-center justify-center pl-4 rounded-l-xl border-r-0">
-                <Icon name="search" />
-              </div>
-              <input 
-                className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-slate-900 dark:text-white focus:outline-0 focus:ring-0 border-none bg-slate-200 dark:bg-card-dark focus:border-none h-full placeholder:text-slate-500 dark:placeholder:text-[#bc9aa3] px-4 rounded-l-none border-l-0 pl-2 text-base font-normal leading-normal" 
-                placeholder="Buscar receitas..." 
-              />
+          <div className="flex w-full items-stretch rounded-xl h-12 bg-slate-200 dark:bg-card-dark border border-white/5">
+            <div className="text-primary flex items-center justify-center pl-4">
+              <Icon name="search" />
             </div>
-          </label>
+            <input
+              className="flex-1 bg-transparent border-none focus:ring-0 text-slate-900 dark:text-white px-4 text-sm font-medium"
+              placeholder="Buscar receitas fit..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
         </div>
 
-        <main className="flex-1 overflow-y-auto pt-2">
-          <div className="p-4 @container">
-            <div 
-              onClick={onRecipeClick}
-              className="flex flex-col items-stretch justify-start rounded-xl shadow-lg bg-white dark:bg-card-dark overflow-hidden transition-transform active:scale-[0.98] cursor-pointer"
-            >
-              <div 
-                className="w-full bg-center bg-no-repeat aspect-video bg-cover" 
-                style={{ backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuAayopf32A3rAZFqc2iO8ZEwR5JKN8KGOcLJkSfU8LDUXwp9uH7Zrx9BA8_qSQ_JP5NoCv023xnr4Gg_qMbEIGREFM33Gkyp9GIjm2ntzoG6dzAcHONz07QOHQL5u0gogDX9VcofQLkuYowt1GWs-_A1TTSLWdlk11qMlnr-ydpHu8vVxmEtu8oOVUJ82MYnITA1B_CpR4gl8GsdwsT566jdr_pALOLSKF01sRjM9mFySUkqMbpBK-15cm0JUDlyh_1-lcPjDSoo704")' }}
-              >
-                <div className="w-full h-full bg-gradient-to-t from-black/60 to-transparent flex items-end p-4">
-                  <span className="bg-primary text-white text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider">Destaque</span>
-                </div>
-              </div>
-              <div className="flex w-full min-w-72 grow flex-col items-stretch justify-center gap-1 py-4 px-4">
-                <p className="text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-tight">Frango Grelhado com Legumes</p>
-                <div className="flex items-center gap-4 mt-1">
-                  <div className="flex items-center gap-1 text-slate-500 dark:text-[#bc9aa3]">
-                    <Icon name="schedule" className="text-[18px] text-primary" />
-                    <span className="text-sm font-medium">20 min</span>
-                  </div>
-                  <div className="flex items-center gap-1 text-slate-500 dark:text-[#bc9aa3]">
-                    <Icon name="local_fire_department" className="text-[18px] text-primary" />
-                    <span className="text-sm font-medium">350 kcal</span>
-                  </div>
-                </div>
-              </div>
+        <main className="flex-1 overflow-y-auto pt-2 space-y-4 px-4">
+          {loading ? (
+            <div className="flex flex-col items-center py-20 gap-4 opacity-50">
+              <div className="size-10 border-4 border-primary border-t-transparent animate-spin rounded-full"></div>
+              <p className="text-xs font-black uppercase tracking-[0.3em] text-primary">Carregando...</p>
             </div>
-          </div>
-
-          <div className="p-4 @container">
-            <div 
-              onClick={onRecipeClick}
-              className="flex flex-col items-stretch justify-start rounded-xl shadow-lg bg-white dark:bg-card-dark overflow-hidden transition-transform active:scale-[0.98] cursor-pointer"
-            >
-              <div 
-                className="w-full bg-center bg-no-repeat aspect-video bg-cover" 
-                style={{ backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuD0PdCZzW0Ot9B0Jj8cDL-Mn19ONkurMKVmle5uaat-GGbWWJdPgS-8Z0kwh11yYsyDoqQ00m62VOHszp8arJ639r8KQfLsC5xR3eavEBzXClWn4p91qcyPQ6-AwKNH2bmXUljk83faQ7EpyZ_CJMpqrttJKgnaKZjbxBRTuSdeIZgnti3beNFqSu4g22wJjZJ-NpbbCl4eW-p2LXt3zJtxT-Jd3rVCaW6YUi4zBXFTls4uKaEtSGvud0jXx_D8PONLMk2Dlkdcs8ug")' }}
+          ) : filteredRecipes.length === 0 ? (
+            <div className="text-center py-20 opacity-50 italic uppercase tracking-widest text-xs font-bold">
+              Nada encontrado por aqui...
+            </div>
+          ) : (
+            filteredRecipes.map(recipe => (
+              <div
+                key={recipe.id}
+                onClick={() => onRecipeClick(recipe.id)}
+                className="flex flex-col items-stretch justify-start rounded-2xl shadow-xl bg-white dark:bg-card-dark overflow-hidden transition-all active:scale-[0.98] cursor-pointer border border-white/5"
               >
-              </div>
-              <div className="flex w-full min-w-72 grow flex-col items-stretch justify-center gap-1 py-4 px-4">
-                <p className="text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-tight">Salmão ao Forno</p>
-                <div className="flex items-center gap-4 mt-1">
-                  <div className="flex items-center gap-1 text-slate-500 dark:text-[#bc9aa3]">
-                    <Icon name="schedule" className="text-[18px] text-primary" />
-                    <span className="text-sm font-medium">25 min</span>
+                <div
+                  className="w-full bg-center bg-no-repeat aspect-video bg-cover relative"
+                  style={{ backgroundImage: `url("${recipe.image_url || 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&q=80&w=400'}")` }}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+                  <div className="absolute bottom-4 left-4">
+                    <span className="bg-primary text-white text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-[0.2em] shadow-lg shadow-primary/20">
+                      {recipe.recipe_categories?.name || 'RECEITA'}
+                    </span>
                   </div>
-                  <div className="flex items-center gap-1 text-slate-500 dark:text-[#bc9aa3]">
-                    <Icon name="local_fire_department" className="text-[18px] text-primary" />
-                    <span className="text-sm font-medium">420 kcal</span>
+                </div>
+                <div className="flex flex-col gap-1 py-5 px-5">
+                  <p className="text-slate-900 dark:text-white text-lg font-black leading-tight tracking-tight uppercase italic">{recipe.title}</p>
+                  <div className="flex items-center gap-4 mt-2">
+                    <div className="flex items-center gap-1.5 text-slate-500 dark:text-[#bc9aa3]">
+                      <Icon name="schedule" className="text-primary text-base" />
+                      <span className="text-[10px] font-black uppercase tracking-widest">Preparo Médio</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-slate-500 dark:text-[#bc9aa3]">
+                      <Icon name="local_fire_department" className="text-primary text-base" />
+                      <span className="text-[10px] font-black uppercase tracking-widest">Nutritivo</span>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-
-          <div className="p-4 @container">
-            <div 
-              onClick={onRecipeClick}
-              className="flex flex-col items-stretch justify-start rounded-xl shadow-lg bg-white dark:bg-card-dark overflow-hidden transition-transform active:scale-[0.98] cursor-pointer"
-            >
-              <div 
-                className="w-full bg-center bg-no-repeat aspect-video bg-cover" 
-                style={{ backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuAJmpwiMlCZNNfc6NcM65XCGysv0mp143n_K8w75uWFVI-YjMiORFPouq2iN1-A0BKJJdV296nB9lb61ipCuOOiX5Ie76ONKcuLrGMwnsWpPbCus9Urb4uGVtFgKrO0d-LJUdReky1DX0EQf428o_0Hz_pvgkzVrzepmKdGrzN9jb5e71TR7VDNDG_VvBNXpUz5CpHl-I-9nPKAOD5ES6bunYhe1SGT7paRfbMSjEg_fAMXyG-BjX3C0HryaTMtFFSh1Rf3-pQ1GhF6")' }}
-              >
-              </div>
-              <div className="flex w-full min-w-72 grow flex-col items-stretch justify-center gap-1 py-4 px-4">
-                <p className="text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-tight">Salada Caesar Fit</p>
-                <div className="flex items-center gap-4 mt-1">
-                  <div className="flex items-center gap-1 text-slate-500 dark:text-[#bc9aa3]">
-                    <Icon name="schedule" className="text-[18px] text-primary" />
-                    <span className="text-sm font-medium">15 min</span>
-                  </div>
-                  <div className="flex items-center gap-1 text-slate-500 dark:text-[#bc9aa3]">
-                    <Icon name="local_fire_department" className="text-[18px] text-primary" />
-                    <span className="text-sm font-medium">280 kcal</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="p-4 @container">
-            <div 
-              onClick={onRecipeClick}
-              className="flex flex-col items-stretch justify-start rounded-xl shadow-lg bg-white dark:bg-card-dark overflow-hidden transition-transform active:scale-[0.98] cursor-pointer"
-            >
-              <div 
-                className="w-full bg-center bg-no-repeat aspect-video bg-cover" 
-                style={{ backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuDZonmUeLbJp7vFalcElm6pwdS4lgTl_G4cRlXxrFcXxI26UV8sB0xTt2mkBJlLo06HsWpgbZ-IgCR6k8dVtwaDAToSi6z6mn9YhtVnQMqReLf4KNdiF64Etd8XRlwT7QioDtnDEqF4lLKYEqZu_oSm_JEkp9i79WJr5QCnqMVr7HwS_CLnZeVaQsTCSEjgHGfZGNBAP6ZrIO5vuBliL-a6uS8vLaiHqBKQ6G7c_v6CbN4mO6K4XRwc4UZ1jNDiY0NKVjen6nQ2-z1j")' }}
-              >
-              </div>
-              <div className="flex w-full min-w-72 grow flex-col items-stretch justify-center gap-1 py-4 px-4">
-                <p className="text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-tight">Pimentão Recheado com Quinoa</p>
-                <div className="flex items-center gap-4 mt-1">
-                  <div className="flex items-center gap-1 text-slate-500 dark:text-[#bc9aa3]">
-                    <Icon name="schedule" className="text-[18px] text-primary" />
-                    <span className="text-sm font-medium">35 min</span>
-                  </div>
-                  <div className="flex items-center gap-1 text-slate-500 dark:text-[#bc9aa3]">
-                    <Icon name="local_fire_department" className="text-[18px] text-primary" />
-                    <span className="text-sm font-medium">310 kcal</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+            ))
+          )}
         </main>
 
-        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-card-dark/95 backdrop-blur-md border-t border-slate-200 dark:border-white/10 px-6 py-3">
-          <div className="recipe-list-container flex justify-around items-center mx-auto">
-            <div 
-              onClick={onBack}
-              className="flex flex-col items-center gap-1 text-slate-500 dark:text-slate-400 cursor-pointer flex-1"
-            >
+        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-card-dark/95 backdrop-blur-md border-t border-slate-200 dark:border-white/10 px-6 py-3 lg:hidden">
+          <div className="flex justify-around items-center">
+            <div onClick={onBack} className="flex flex-col items-center gap-1 text-slate-500 dark:text-slate-400 cursor-pointer flex-1">
               <Icon name="home" />
-              <span className="text-[10px] font-medium">Início</span>
+              <span className="text-[10px] font-bold uppercase">Início</span>
             </div>
-            <div className="flex flex-col items-center gap-1 text-slate-500 dark:text-slate-400 cursor-pointer flex-1">
-              <Icon name="calendar_month" />
-              <span className="text-[10px] font-medium">Agenda</span>
+            <div className="flex flex-col items-center gap-1 text-primary cursor-pointer flex-1">
+              <Icon name="restaurant" />
+              <span className="text-[10px] font-bold uppercase">Receitas</span>
             </div>
             <div className="flex flex-col items-center gap-1 text-slate-500 dark:text-slate-400 cursor-pointer flex-1">
               <Icon name="groups" />
-              <span className="text-[10px] font-medium">Comunidade</span>
+              <span className="text-[10px] font-bold uppercase">Comunidade</span>
             </div>
           </div>
         </nav>
