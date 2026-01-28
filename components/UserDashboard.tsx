@@ -641,9 +641,11 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
 
               {!pixData ? (
                 <>
-                  <h3 className="text-2xl font-black text-white uppercase italic leading-tight mb-2">Checkout TorApp</h3>
+                  <h3 className="text-2xl font-black text-white uppercase italic leading-tight mb-2">
+                    {selectedInfluencer?.checkout_title || `Treino ${selectedInfluencer?.full_name}`}
+                  </h3>
                   <p className="text-sm text-slate-400 mb-8 px-4 font-medium leading-relaxed italic">
-                    Você está prestes a desbloquear o treino de <span className="text-white font-bold">{selectedInfluencer?.full_name}</span>.
+                    {selectedInfluencer?.checkout_description || `Você está prestes a desbloquear o treino exclusivo de ${selectedInfluencer?.full_name}. Acesso vitalício ao plano personalizado!`}
                   </p>
 
                   <div className="w-full bg-white/5 border border-white/5 rounded-2xl p-6 mb-8">

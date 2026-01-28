@@ -19,7 +19,9 @@ export const EditInfluencer: React.FC<EditInfluencerProps> = ({ influencerId, on
     commission_per_user: 35,
     workout_price: '79.90',
     commission_value: '35.00',
-    pix_key: ''
+    pix_key: '',
+    checkout_title: '',
+    checkout_description: ''
   });
 
   useEffect(() => {
@@ -46,7 +48,9 @@ export const EditInfluencer: React.FC<EditInfluencerProps> = ({ influencerId, on
         commission_per_user: data.commission_per_user || 35,
         workout_price: data.workout_price?.toString() || '79.90',
         commission_value: data.commission_value?.toString() || '35.00',
-        pix_key: data.pix_key || ''
+        pix_key: data.pix_key || '',
+        checkout_title: data.checkout_title || '',
+        checkout_description: data.checkout_description || ''
       });
     } catch (err) {
       console.error('Error fetching influencer:', err);
@@ -70,6 +74,8 @@ export const EditInfluencer: React.FC<EditInfluencerProps> = ({ influencerId, on
           workout_price: parseFloat(profile.workout_price) || 0,
           commission_value: parseFloat(profile.commission_value) || 0,
           pix_key: profile.pix_key,
+          checkout_title: profile.checkout_title || null,
+          checkout_description: profile.checkout_description || null,
           updated_at: new Date().toISOString()
         })
         .eq('id', influencerId);
@@ -241,6 +247,72 @@ export const EditInfluencer: React.FC<EditInfluencerProps> = ({ influencerId, on
                   </button>
                 </div>
               </div>
+            </div>
+          </section>
+
+          {/* Checkout Customization Section */}
+          <section className="bg-gradient-to-br from-primary/5 to-primary/10 p-8 rounded-2xl border border-primary/20 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-6 opacity-10">
+              <Icon name="shopping_cart" className="text-6xl" />
+            </div>
+            <label className="text-xs font-bold text-primary uppercase tracking-widest mb-4 block flex items-center gap-2">
+              <Icon name="storefront" className="text-lg" />
+              Personalização do Checkout
+            </label>
+            <p className="text-[11px] text-slate-500 mb-6 italic">Configure como o checkout aparecerá para os usuários que usarem o cupom deste influenciador.</p>
+
+            <div className="space-y-6">
+              <div>
+                <label className="text-[10px] uppercase font-bold text-slate-500 mb-1.5 block ml-1">Título do Checkout</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500">
+                    <Icon name="title" />
+                  </div>
+                  <input
+                    className="bg-card-dark border border-white/10 rounded-lg pl-12 pr-4 py-3 text-white focus:ring-1 focus:ring-primary focus:border-primary w-full transition-all outline-none"
+                    placeholder="Ex: Acesso VIP - Treino Exclusivo"
+                    type="text"
+                    value={profile.checkout_title}
+                    onChange={(e) => setProfile({ ...profile, checkout_title: e.target.value })}
+                  />
+                </div>
+                <p className="mt-1.5 text-[10px] text-slate-600 ml-1 italic">Se vazio, usará: "Treino [Nome do Influenciador]"</p>
+              </div>
+
+              <div>
+                <label className="text-[10px] uppercase font-bold text-slate-500 mb-1.5 block ml-1">Descrição do Checkout</label>
+                <div className="relative">
+                  <div className="absolute top-3 left-4 pointer-events-none text-slate-500">
+                    <Icon name="description" />
+                  </div>
+                  <textarea
+                    className="bg-card-dark border border-white/10 rounded-lg pl-12 pr-4 py-3 text-white focus:ring-1 focus:ring-primary focus:border-primary w-full transition-all outline-none resize-none min-h-[100px]"
+                    placeholder="Descreva o que o usuário vai receber ao ativar este plano..."
+                    value={profile.checkout_description}
+                    onChange={(e) => setProfile({ ...profile, checkout_description: e.target.value })}
+                  />
+                </div>
+                <p className="mt-1.5 text-[10px] text-slate-600 ml-1 italic">Se vazio, usará descrição padrão do sistema.</p>
+              </div>
+
+              {/* Preview Card */}
+              {(profile.checkout_title || profile.checkout_description) && (
+                <div className="mt-6 p-5 bg-black/30 rounded-xl border border-white/5">
+                  <p className="text-[9px] font-black text-primary uppercase tracking-[0.2em] mb-3">Preview do Checkout</p>
+                  <h4 className="text-lg font-black text-white uppercase italic leading-tight mb-2">
+                    {profile.checkout_title || `Treino ${profile.full_name}`}
+                  </h4>
+                  <p className="text-xs text-slate-400 leading-relaxed italic">
+                    {profile.checkout_description || 'Acesso ao treino exclusivo personalizado.'}
+                  </p>
+                  <div className="flex items-center gap-2 mt-4">
+                    <span className="text-xl font-black text-white">
+                      {parseFloat(profile.workout_price || '0').toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    </span>
+                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest bg-white/5 px-2 py-1 rounded">Pagamento Único</span>
+                  </div>
+                </div>
+              )}
             </div>
           </section>
           <section className="bg-card-dark/30 p-8 rounded-2xl border border-white/5">
