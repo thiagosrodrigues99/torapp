@@ -29,9 +29,9 @@ export const FinanceManagement: React.FC<FinanceManagementProps> = ({ onBack }) 
           <div className="flex items-center gap-4 md:gap-6">
             <div className="relative w-40 md:w-64 hidden sm:block">
               <select className="appearance-none w-full rounded-xl text-white border border-gray-800 bg-[#1e1e1e] h-11 px-4 pr-10 text-sm font-semibold focus:ring-2 focus:ring-primary focus:border-transparent cursor-pointer outline-none">
-                <option value="out23">Outubro 2023</option>
-                <option value="set23">Setembro 2023</option>
-                <option value="ago23">Agosto 2023</option>
+                <option value="jan26">Janeiro 2026</option>
+                <option value="dez25">Dezembro 2025</option>
+                <option value="nov25">Novembro 2025</option>
               </select>
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-primary">
                 <Icon name="calendar_month" className="text-xl" />
@@ -55,7 +55,7 @@ export const FinanceManagement: React.FC<FinanceManagementProps> = ({ onBack }) 
             </div>
           </div>
         </header>
-        
+
         <main className="flex-1 p-4 md:p-8 max-w-[1600px] mx-auto w-full space-y-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
             <div className="bg-primary rounded-2xl p-6 shadow-xl shadow-primary/10 relative overflow-hidden flex flex-col justify-between h-40">
@@ -159,14 +159,14 @@ export const FinanceManagement: React.FC<FinanceManagementProps> = ({ onBack }) 
                 <div className="flex-1 flex flex-col items-center gap-4 group">
                   <div className="w-full bg-primary rounded-t-xl h-[95%] relative transition-all shadow-lg shadow-primary/20">
                     <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-white text-background-dark font-bold text-xs px-3 py-1.5 rounded-lg shadow-xl whitespace-nowrap hidden group-hover:block sm:block">
-                        R$ 58.000,00
+                      R$ 58.000,00
                     </div>
                   </div>
                   <span className="text-xs text-primary font-black uppercase">OUT</span>
                 </div>
               </div>
             </div>
-            
+
             <div className="lg:col-span-4 bg-[#1e1e1e] border border-gray-800 rounded-2xl p-8">
               <div className="flex items-center justify-between mb-8">
                 <h3 className="text-xl font-bold">Últimos Lançamentos</h3>

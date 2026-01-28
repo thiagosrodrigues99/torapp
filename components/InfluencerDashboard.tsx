@@ -105,9 +105,9 @@ export const InfluencerDashboard: React.FC<InfluencerDashboardProps> = ({ onLogo
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-[#bc9aa3] mb-2 px-1">Filtrar por Período</p>
             <div className="relative">
               <select className="appearance-none w-full rounded-xl border border-slate-200 dark:border-[#332226] bg-white dark:bg-surface-dark py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900 dark:text-white">
-                <option value="oct23">Outubro 2023</option>
-                <option value="sep23">Setembro 2023</option>
-                <option value="aug23">Agosto 2023</option>
+                <option value="jan26">Janeiro 2026</option>
+                <option value="dec25">Dezembro 2025</option>
+                <option value="nov25">Novembro 2025</option>
               </select>
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-primary">
                 <Icon name="expand_more" />
@@ -188,7 +188,7 @@ export const InfluencerDashboard: React.FC<InfluencerDashboardProps> = ({ onLogo
               </div>
               <div className="text-right">
                 <p className="text-xs text-slate-500 dark:text-[#bc9aa3]">Data do Pagamento</p>
-                <p className="text-sm font-semibold">12/10/2023</p>
+                <p className="text-sm font-semibold">28/01/2026</p>
               </div>
             </div>
             <button className="w-full flex cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-xl h-12 px-4 bg-primary text-white text-sm font-bold leading-normal transition-transform active:scale-95 shadow-md shadow-primary/20 hover:bg-primary/90">

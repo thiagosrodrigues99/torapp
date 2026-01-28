@@ -173,7 +173,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
       </main>
 
       <footer className="p-8 text-center border-t border-slate-200 dark:border-white/5">
-        <p className="text-[10px] text-slate-500 uppercase tracking-[0.4em] font-bold">© 2024 Fitness Platform • Gestão de Dados</p>
+        <p className="text-[10px] text-slate-500 uppercase tracking-[0.4em] font-bold">© 2026 Fitness Platform • Gestão de Dados</p>
       </footer>
     </div>
   );

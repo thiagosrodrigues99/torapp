@@ -19,7 +19,7 @@ export const MedalsManagement: React.FC<MedalsManagementProps> = ({ onBack }) =>
       <header className="sticky top-0 z-50 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-gray-200 dark:border-white/10">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <button 
+            <button
               onClick={onBack}
               className="flex items-center justify-center size-10 rounded-full hover:bg-gray-200 dark:hover:bg-surface-dark transition-colors"
             >
@@ -33,7 +33,7 @@ export const MedalsManagement: React.FC<MedalsManagementProps> = ({ onBack }) =>
               <span className="text-xs text-gray-500">v2.4.0</span>
             </div>
             <div className="size-10 rounded-full bg-primary flex items-center justify-center text-white font-bold">
-                AD
+              AD
             </div>
           </div>
         </div>
@@ -52,12 +52,12 @@ export const MedalsManagement: React.FC<MedalsManagementProps> = ({ onBack }) =>
               <div className="space-y-6">
                 <div className="flex flex-col gap-2">
                   <label className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Título da Medalha</label>
-                  <input className="w-full h-12 bg-gray-50 dark:bg-[#141414] border border-gray-300 dark:border-white/10 rounded-lg px-4 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all placeholder:text-gray-400 dark:text-white" placeholder="Ex: Super Atleta 2024" type="text"/>
+                  <input className="w-full h-12 bg-gray-50 dark:bg-[#141414] border border-gray-300 dark:border-white/10 rounded-lg px-4 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all placeholder:text-gray-400 dark:text-white" placeholder="Ex: Super Atleta 2024" type="text" />
                 </div>
                 <div className="flex flex-col gap-2">
                   <label className="text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Pontos para Conquistar</label>
                   <div className="relative">
-                    <input className="w-full h-12 bg-gray-50 dark:bg-[#141414] border border-gray-300 dark:border-white/10 rounded-lg px-4 pr-12 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all placeholder:text-gray-400 dark:text-white" placeholder="000" type="number"/>
+                    <input className="w-full h-12 bg-gray-50 dark:bg-[#141414] border border-gray-300 dark:border-white/10 rounded-lg px-4 pr-12 focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all placeholder:text-gray-400 dark:text-white" placeholder="000" type="number" />
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold uppercase">PTS</span>
                   </div>
                 </div>
@@ -101,7 +101,7 @@ export const MedalsManagement: React.FC<MedalsManagementProps> = ({ onBack }) =>
           {/* Medal Card 1 */}
           <div className="group bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/10 rounded-xl p-5 hover:border-primary transition-all hover:shadow-lg dark:hover:shadow-primary/5">
             <div className="relative aspect-square mb-4 bg-gray-50 dark:bg-background-dark rounded-lg flex items-center justify-center overflow-hidden">
-              <img alt="Medalha de Ouro" className="size-28 object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDrr9SeOMHMAR07A0SOxmYPhWMATGU2ZVCKMVrrz_Cn6ye3wjlKGasOOzP3NxCfakh1EZezGCrCo36IlkGQ8f8dZ_fT1DsMkXZ6k3Vcouu6vSWxVYvJobsZgn_LF3MCaq-TaSTJjbC8ClVCISeRhNJeQctmUTNHlFvbcxn98WPe_YwSqebRlz0lmRrbYHBhdJ-yaMceOK9JuCJfPb5_weRtAQIFv5xTDIR1rpUxVYnREaZnZYavsogqw-N3KYWX8zf0ERhHWOJNRwJL"/>
+              <img alt="Medalha de Ouro" className="size-28 object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDrr9SeOMHMAR07A0SOxmYPhWMATGU2ZVCKMVrrz_Cn6ye3wjlKGasOOzP3NxCfakh1EZezGCrCo36IlkGQ8f8dZ_fT1DsMkXZ6k3Vcouu6vSWxVYvJobsZgn_LF3MCaq-TaSTJjbC8ClVCISeRhNJeQctmUTNHlFvbcxn98WPe_YwSqebRlz0lmRrbYHBhdJ-yaMceOK9JuCJfPb5_weRtAQIFv5xTDIR1rpUxVYnREaZnZYavsogqw-N3KYWX8zf0ERhHWOJNRwJL" />
               <div className="absolute top-2 right-2 bg-primary text-white text-[10px] font-bold px-2 py-1 rounded-full">
                 ATIVO
               </div>
@@ -112,7 +112,7 @@ export const MedalsManagement: React.FC<MedalsManagementProps> = ({ onBack }) =>
               <span className="text-sm text-gray-500 font-medium">5.000 Pontos</span>
             </div>
             <div className="flex gap-2">
-              <button 
+              <button
                 onClick={() => setView('edit')}
                 className="flex-1 h-9 flex items-center justify-center gap-1 text-xs font-bold uppercase rounded-lg border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-background-dark transition-colors"
               >
@@ -127,7 +127,7 @@ export const MedalsManagement: React.FC<MedalsManagementProps> = ({ onBack }) =>
           {/* Medal Card 2 */}
           <div className="group bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/10 rounded-xl p-5 hover:border-primary transition-all hover:shadow-lg">
             <div className="relative aspect-square mb-4 bg-gray-50 dark:bg-background-dark rounded-lg flex items-center justify-center overflow-hidden">
-              <img alt="Iniciante" className="size-28 object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDIHkcN5rawQ2TdxZ6C26pI-rFYvBRkQ1ltPH4DwyEFIlyUdoRBd6tDNRFYxo8Jwjc5Bnf5rkicLOy3z8nX0a1rEHSg00GYo40lZQkTA7TeKKap72JmM-1AT9K-EzARTdBsOT4vdG81mUCXP_LVWRr1B4hWsseblIWb8TwBl5gFfYkgrhLirGT1e_hM2vNR1LPpAc1IFoMdiTq7VJHDwW3xiO1FvXQs1kAIJg1ozxs0LsslcbzzUeNiiU_MdNal0rN5U2XJN6kmJgH4"/>
+              <img alt="Iniciante" className="size-28 object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDIHkcN5rawQ2TdxZ6C26pI-rFYvBRkQ1ltPH4DwyEFIlyUdoRBd6tDNRFYxo8Jwjc5Bnf5rkicLOy3z8nX0a1rEHSg00GYo40lZQkTA7TeKKap72JmM-1AT9K-EzARTdBsOT4vdG81mUCXP_LVWRr1B4hWsseblIWb8TwBl5gFfYkgrhLirGT1e_hM2vNR1LPpAc1IFoMdiTq7VJHDwW3xiO1FvXQs1kAIJg1ozxs0LsslcbzzUeNiiU_MdNal0rN5U2XJN6kmJgH4" />
             </div>
             <h3 className="font-bold text-lg mb-1 truncate">Primeira Corrida</h3>
             <div className="flex items-center gap-2 mb-4">
@@ -135,7 +135,7 @@ export const MedalsManagement: React.FC<MedalsManagementProps> = ({ onBack }) =>
               <span className="text-sm text-gray-500 font-medium">100 Pontos</span>
             </div>
             <div className="flex gap-2">
-              <button 
+              <button
                 onClick={() => setView('edit')}
                 className="flex-1 h-9 flex items-center justify-center gap-1 text-xs font-bold uppercase rounded-lg border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-background-dark transition-colors"
               >
@@ -150,7 +150,7 @@ export const MedalsManagement: React.FC<MedalsManagementProps> = ({ onBack }) =>
           {/* Medal Card 3 */}
           <div className="group bg-white dark:bg-surface-dark border border-gray-200 dark:border-white/10 rounded-xl p-5 hover:border-primary transition-all hover:shadow-lg">
             <div className="relative aspect-square mb-4 bg-gray-50 dark:bg-background-dark rounded-lg flex items-center justify-center overflow-hidden">
-              <img alt="Mestre" className="size-28 object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBsifAmllfG8buAng4_r0VUjvhynrEbdGvkVLX_2MjpTqte_U0A9liy_NWS8VWYX2-M5fl0tF7OcTeNW18aqo8EeXKO7JWanZrTBuN52-HZ9OpGLoiKPDKByWhaiIOB7X3sF13M4NxmBJWdhnGC7YJpFthPG-7PeRcJqIZHAFwJs0KvZ5jL6R22ozPiGEH8SzW5ULqtRK-VvCU7-lq_q3DuaVgK46_sQjk5Rel_HjS-HZyYDuGiONaAthwpXZmXJx472nIX2bDk46HI"/>
+              <img alt="Mestre" className="size-28 object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBsifAmllfG8buAng4_r0VUjvhynrEbdGvkVLX_2MjpTqte_U0A9liy_NWS8VWYX2-M5fl0tF7OcTeNW18aqo8EeXKO7JWanZrTBuN52-HZ9OpGLoiKPDKByWhaiIOB7X3sF13M4NxmBJWdhnGC7YJpFthPG-7PeRcJqIZHAFwJs0KvZ5jL6R22ozPiGEH8SzW5ULqtRK-VvCU7-lq_q3DuaVgK46_sQjk5Rel_HjS-HZyYDuGiONaAthwpXZmXJx472nIX2bDk46HI" />
             </div>
             <h3 className="font-bold text-lg mb-1 truncate">Mestre do Cardio</h3>
             <div className="flex items-center gap-2 mb-4">
@@ -158,7 +158,7 @@ export const MedalsManagement: React.FC<MedalsManagementProps> = ({ onBack }) =>
               <span className="text-sm text-gray-500 font-medium">2.500 Pontos</span>
             </div>
             <div className="flex gap-2">
-              <button 
+              <button
                 onClick={() => setView('edit')}
                 className="flex-1 h-9 flex items-center justify-center gap-1 text-xs font-bold uppercase rounded-lg border border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-background-dark transition-colors"
               >
@@ -182,7 +182,7 @@ export const MedalsManagement: React.FC<MedalsManagementProps> = ({ onBack }) =>
 
       {/* Footer Space */}
       <footer className="mt-20 py-8 border-t border-gray-200 dark:border-white/10 text-center">
-        <p className="text-sm text-gray-500">© 2024 Admin Panel - FitnessPlatform</p>
+        <p className="text-sm text-gray-500">© 2026 Admin Panel - FitnessPlatform</p>
       </footer>
     </div>
   );

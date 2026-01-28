@@ -1,17 +1,131 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Icon } from './Icon';
+import { supabase } from '../lib/supabase';
+
+interface Sale {
+  id: string;
+  user_name: string;
+  created_at: string;
+  status: string;
+  amount: number;
+  commission: number;
+}
 
 interface InfluencerSalesProps {
+  influencerId: string;
   onBack: () => void;
 }
 
-export const InfluencerSales: React.FC<InfluencerSalesProps> = ({ onBack }) => {
+export const InfluencerSales: React.FC<InfluencerSalesProps> = ({ influencerId, onBack }) => {
+  const [loading, setLoading] = useState(true);
+  const [influencer, setInfluencer] = useState({ full_name: '', coupon: '', commission_per_user: 35 });
+  const [sales, setSales] = useState<Sale[]>([]);
+  const [stats, setStats] = useState({
+    totalSales: 0,
+    pendingCommission: 0,
+    conversionRate: 0,
+    totalUsers: 0,
+    trialUsers: 0,
+    paidUsers: 0
+  });
+
+  useEffect(() => {
+    fetchInfluencerData();
+  }, [influencerId]);
+
+  const fetchInfluencerData = async () => {
+    try {
+      setLoading(true);
+
+      const { data: influencerData, error: influencerError } = await supabase
+        .from('profiles')
+        .select('full_name, coupon, commission_per_user')
+        .eq('id', influencerId)
+        .single();
+
+      if (influencerError) throw influencerError;
+      setInfluencer({
+        full_name: influencerData.full_name || '',
+        coupon: influencerData.coupon || '',
+        commission_per_user: influencerData.commission_per_user || 35
+      });
+
+      // Get all users with this coupon (these are the "sales")
+      const { data: usersWithCoupon, error: usersError } = await supabase
+        .from('profiles')
+        .select('id, full_name, created_at, status, role')
+        .eq('coupon', influencerData.coupon)
+        .neq('role', 'influencer')
+        .neq('role', 'admin')
+        .order('created_at', { ascending: false });
+
+      if (usersError) throw usersError;
+
+      // Calculate stats
+      const users = usersWithCoupon || [];
+      const paidUsers = users.filter(u => u.status === 'Ativo');
+      const trialUsers = users.filter(u => u.status === 'Teste Grátis');
+
+      const SUBSCRIPTION_VALUE = 49.90; // Valor da assinatura
+      const COMMISSION_PER_USER = influencerData.commission_per_user || 35; // Comissão por usuário pago
+
+      const totalSales = paidUsers.length * SUBSCRIPTION_VALUE;
+      const pendingCommission = paidUsers.length * COMMISSION_PER_USER;
+      const conversionRate = users.length > 0 ? (paidUsers.length / users.length * 100) : 0;
+
+      setStats({
+        totalSales,
+        pendingCommission,
+        conversionRate,
+        totalUsers: users.length,
+        trialUsers: trialUsers.length,
+        paidUsers: paidUsers.length
+      });
+
+      // Map users to sales format
+      const salesData: Sale[] = users.map(user => ({
+        id: user.id,
+        user_name: user.full_name || 'Usuário',
+        created_at: user.created_at,
+        status: user.status === 'Ativo' ? 'Pago' : user.status === 'Teste Grátis' ? 'Teste' : 'Pendente',
+        amount: user.status === 'Ativo' ? SUBSCRIPTION_VALUE : 0,
+        commission: user.status === 'Ativo' ? COMMISSION_PER_USER : 0
+      }));
+
+      setSales(salesData);
+    } catch (err) {
+      console.error('Error fetching influencer data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('pt-BR') + ' ' + date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const formatCurrency = (value: number) => {
+    return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  };
+
+  if (loading) {
+    return (
+      <div className="bg-background-dark text-white min-h-screen flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-primary"></div>
+          <p className="text-slate-500 text-sm">Carregando dados de vendas...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-background-dark text-[#f0f0f0] min-h-screen flex flex-col font-display">
       <header className="sticky top-0 z-50 bg-background-dark/90 backdrop-blur-md border-b border-white/5 w-full">
         <div className="flex items-center p-4 justify-between w-full px-8">
           <div className="flex items-center gap-6">
-            <button 
+            <button
               onClick={onBack}
               className="flex items-center justify-center p-2 rounded-lg hover:bg-white/10 text-white transition-colors"
             >
@@ -19,8 +133,8 @@ export const InfluencerSales: React.FC<InfluencerSalesProps> = ({ onBack }) => {
             </button>
             <div className="flex flex-col">
               <div className="flex items-center gap-3">
-                <h2 className="text-xl font-bold tracking-tight uppercase italic text-white leading-none">Bruno Siqueira</h2>
-                <span className="bg-primary/10 text-primary text-[10px] font-black px-2 py-0.5 rounded border border-primary/20 uppercase">BRUNO10</span>
+                <h2 className="text-xl font-bold tracking-tight uppercase italic text-white leading-none">{influencer.full_name}</h2>
+                <span className="bg-primary/10 text-primary text-[10px] font-black px-2 py-0.5 rounded border border-primary/20 uppercase">{influencer.coupon}</span>
               </div>
               <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mt-1">Vendas do Influenciador</p>
             </div>
@@ -50,7 +164,7 @@ export const InfluencerSales: React.FC<InfluencerSalesProps> = ({ onBack }) => {
             </div>
             <div>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Total de Vendas (R$)</p>
-              <p className="text-3xl font-black text-white mt-1">R$ 12.450,00</p>
+              <p className="text-3xl font-black text-white mt-1">{formatCurrency(stats.totalSales)}</p>
             </div>
           </div>
           <div className="bg-card-dark p-6 rounded-2xl border border-white/5 flex items-center gap-5">
@@ -59,7 +173,7 @@ export const InfluencerSales: React.FC<InfluencerSalesProps> = ({ onBack }) => {
             </div>
             <div>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Comissão a Pagar (R$)</p>
-              <p className="text-3xl font-black text-white mt-1">R$ 1.245,00</p>
+              <p className="text-3xl font-black text-white mt-1">{formatCurrency(stats.pendingCommission)}</p>
             </div>
           </div>
           <div className="bg-card-dark p-6 rounded-2xl border border-white/5 flex items-center gap-5">
@@ -68,7 +182,7 @@ export const InfluencerSales: React.FC<InfluencerSalesProps> = ({ onBack }) => {
             </div>
             <div>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Conversão (%)</p>
-              <p className="text-3xl font-black text-white mt-1">4.2%</p>
+              <p className="text-3xl font-black text-white mt-1">{stats.conversionRate.toFixed(1)}%</p>
             </div>
           </div>
           <div className="bg-card-dark p-6 rounded-2xl border border-white/5 flex items-center gap-5">
@@ -77,25 +191,25 @@ export const InfluencerSales: React.FC<InfluencerSalesProps> = ({ onBack }) => {
             </div>
             <div>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Usuários Cadastrados</p>
-              <p className="text-3xl font-black text-white mt-1">1,248</p>
+              <p className="text-3xl font-black text-white mt-1">{stats.totalUsers}</p>
             </div>
           </div>
           <div className="bg-card-dark p-6 rounded-2xl border border-white/5 flex items-center gap-5">
-            <div className="size-14 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+            <div className="size-14 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500">
               <Icon name="timer" className="text-3xl" />
             </div>
             <div>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Usuários em Teste Grátis</p>
-              <p className="text-3xl font-black text-white mt-1">342</p>
+              <p className="text-3xl font-black text-white mt-1">{stats.trialUsers}</p>
             </div>
           </div>
           <div className="bg-card-dark p-6 rounded-2xl border border-white/5 flex items-center gap-5">
-            <div className="size-14 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+            <div className="size-14 rounded-xl bg-green-500/10 flex items-center justify-center text-green-500">
               <Icon name="verified_user" className="text-3xl" />
             </div>
             <div>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Usuários Pagos</p>
-              <p className="text-3xl font-black text-white mt-1">156</p>
+              <p className="text-3xl font-black text-white mt-1">{stats.paidUsers}</p>
             </div>
           </div>
         </div>
@@ -108,17 +222,11 @@ export const InfluencerSales: React.FC<InfluencerSalesProps> = ({ onBack }) => {
                   <Icon name="calendar_month" />
                 </span>
                 <select className="bg-[#1a1a1a] border-white/5 rounded-lg pl-10 pr-10 py-2 text-xs focus:ring-primary focus:border-primary w-48 text-[#f0f0f0] cursor-pointer hover:bg-[#222] transition-colors appearance-none">
-                  <option defaultValue="out-2023">Outubro 2023</option>
-                  <option value="set-2023">Setembro 2023</option>
-                  <option value="ago-2023">Agosto 2023</option>
-                  <option value="jul-2023">Julho 2023</option>
+                  <option defaultValue="jan-2026">Janeiro 2026</option>
+                  <option value="dez-2025">Dezembro 2025</option>
+                  <option value="nov-2025">Novembro 2025</option>
+                  <option value="out-2025">Outubro 2025</option>
                 </select>
-              </div>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xl">
-                  <Icon name="date_range" />
-                </span>
-                <input className="bg-[#1a1a1a] border-white/5 rounded-lg pl-10 pr-4 py-2 text-xs focus:ring-primary focus:border-primary w-48 text-[#f0f0f0]" readOnly type="text" defaultValue="Últimos 30 dias"/>
               </div>
             </div>
           </div>
@@ -129,132 +237,72 @@ export const InfluencerSales: React.FC<InfluencerSalesProps> = ({ onBack }) => {
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">Data</th>
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">Usuário</th>
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">Valor da Venda</th>
-                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400 text-center">Status do Pagamento</th>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400 text-center">Status</th>
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400 text-right">Comissão</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                <tr className="hover:bg-white/5 transition-colors">
-                  <td className="px-6 py-4">
-                    <p className="text-xs text-slate-300">12/10/2023 14:35</p>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <div className="size-7 rounded-full bg-slate-800 flex items-center justify-center">
-                        <Icon name="person" className="text-sm text-slate-500" />
-                      </div>
-                      <p className="text-sm font-medium text-white">Marcos Oliveira</p>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <p className="text-sm font-bold text-white">R$ 197,90</p>
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-green-500/10 text-green-500 uppercase">
-                      <span className="size-1.5 rounded-full bg-green-500"></span>
-                      Pago
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <p className="text-sm font-bold text-primary">R$ 19,79</p>
-                  </td>
-                </tr>
-                <tr className="hover:bg-white/5 transition-colors">
-                  <td className="px-6 py-4">
-                    <p className="text-xs text-slate-300">12/10/2023 11:20</p>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <div className="size-7 rounded-full bg-slate-800 flex items-center justify-center">
-                         <Icon name="person" className="text-sm text-slate-500" />
-                      </div>
-                      <p className="text-sm font-medium text-white">Ana Paula Silva</p>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <p className="text-sm font-bold text-white">R$ 450,00</p>
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-yellow-500/10 text-yellow-500 uppercase">
-                      <span className="size-1.5 rounded-full bg-yellow-500"></span>
-                      Pendente
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <p className="text-sm font-bold text-primary">R$ 45,00</p>
-                  </td>
-                </tr>
-                <tr className="hover:bg-white/5 transition-colors">
-                  <td className="px-6 py-4">
-                    <p className="text-xs text-slate-300">11/10/2023 20:15</p>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <div className="size-7 rounded-full bg-slate-800 flex items-center justify-center">
-                         <Icon name="person" className="text-sm text-slate-500" />
-                      </div>
-                      <p className="text-sm font-medium text-white">Lucas Ferreira</p>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <p className="text-sm font-bold text-white">R$ 197,90</p>
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-green-500/10 text-green-500 uppercase">
-                      <span className="size-1.5 rounded-full bg-green-500"></span>
-                      Pago
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <p className="text-sm font-bold text-primary">R$ 19,79</p>
-                  </td>
-                </tr>
-                <tr className="hover:bg-white/5 transition-colors">
-                  <td className="px-6 py-4">
-                    <p className="text-xs text-slate-300">11/10/2023 18:42</p>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <div className="size-7 rounded-full bg-slate-800 flex items-center justify-center">
-                         <Icon name="person" className="text-sm text-slate-500" />
-                      </div>
-                      <p className="text-sm font-medium text-white">Beatriz Souza</p>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <p className="text-sm font-bold text-white">R$ 297,00</p>
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-green-500/10 text-green-500 uppercase">
-                      <span className="size-1.5 rounded-full bg-green-500"></span>
-                      Pago
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <p className="text-sm font-bold text-primary">R$ 29,70</p>
-                  </td>
-                </tr>
+                {sales.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-12 text-center text-slate-500 italic">
+                      Nenhuma venda encontrada para este influenciador.
+                    </td>
+                  </tr>
+                ) : (
+                  sales.map((sale) => (
+                    <tr key={sale.id} className="hover:bg-white/5 transition-colors">
+                      <td className="px-6 py-4">
+                        <p className="text-xs text-slate-300">{formatDate(sale.created_at)}</p>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <div className="size-7 rounded-full bg-slate-800 flex items-center justify-center">
+                            <Icon name="person" className="text-sm text-slate-500" />
+                          </div>
+                          <p className="text-sm font-medium text-white">{sale.user_name}</p>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="text-sm font-bold text-white">
+                          {sale.amount > 0 ? formatCurrency(sale.amount) : '-'}
+                        </p>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${sale.status === 'Pago'
+                          ? 'bg-green-500/10 text-green-500'
+                          : sale.status === 'Teste'
+                            ? 'bg-amber-500/10 text-amber-500'
+                            : 'bg-yellow-500/10 text-yellow-500'
+                          }`}>
+                          <span className={`size-1.5 rounded-full ${sale.status === 'Pago'
+                            ? 'bg-green-500'
+                            : sale.status === 'Teste'
+                              ? 'bg-amber-500'
+                              : 'bg-yellow-500'
+                            }`}></span>
+                          {sale.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <p className="text-sm font-bold text-primary">
+                          {sale.commission > 0 ? formatCurrency(sale.commission) : '-'}
+                        </p>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
           <div className="p-4 border-t border-white/5 flex items-center justify-between">
-            <p className="text-[10px] text-slate-500 uppercase font-bold">Exibindo 4 de 62 transações</p>
-            <div className="flex gap-2">
-              <button className="size-8 flex items-center justify-center rounded bg-white/5 text-white/50 cursor-not-allowed">
-                <Icon name="chevron_left" className="text-lg" />
-              </button>
-              <button className="size-8 flex items-center justify-center rounded bg-primary text-white font-bold text-xs">1</button>
-              <button className="size-8 flex items-center justify-center rounded bg-white/5 text-white hover:bg-white/10 transition-colors font-bold text-xs">2</button>
-              <button className="size-8 flex items-center justify-center rounded bg-white/5 text-white hover:bg-white/10 transition-colors font-bold text-xs">3</button>
-              <button className="size-8 flex items-center justify-center rounded bg-white/5 text-white hover:bg-white/10 transition-colors">
-                 <Icon name="chevron_right" className="text-lg" />
-              </button>
-            </div>
+            <p className="text-[10px] text-slate-500 uppercase font-bold">
+              Total: {sales.length} transações
+            </p>
           </div>
         </div>
         <div className="text-center py-6">
           <h1 className="text-2xl font-black text-white uppercase tracking-tight italic mb-2">Painel Administrativo</h1>
-          <p className="text-[10px] text-slate-500 uppercase tracking-[0.4em] font-bold">© 2024 Fitness Platform • Performance de Influenciador</p>
+          <p className="text-[10px] text-slate-500 uppercase tracking-[0.4em] font-bold">© 2026 Fitness Platform • Performance de Influenciador</p>
         </div>
       </main>
       <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">

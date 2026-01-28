@@ -41,7 +41,7 @@ export const WorkoutManagement: React.FC<WorkoutManagementProps> = ({ onBack, on
       <header className="sticky top-0 z-50 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-slate-200 dark:border-white/10 w-full">
         <div className="flex items-center p-4 justify-between w-full px-6 md:px-12">
           <div className="flex items-center gap-4">
-            <button 
+            <button
               onClick={onBack}
               className="flex size-10 items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 text-slate-600 dark:text-white transition-colors"
             >
@@ -60,7 +60,7 @@ export const WorkoutManagement: React.FC<WorkoutManagementProps> = ({ onBack, on
               <span className="absolute top-2.5 right-2.5 size-2 bg-primary rounded-full border-2 border-background-light dark:border-background-dark"></span>
             </button>
             <div className="h-10 w-px bg-slate-200 dark:bg-white/10 mx-1"></div>
-            <button 
+            <button
               onClick={onLogout}
               className="flex items-center gap-3 px-2 rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 text-slate-600 dark:text-white transition-colors"
             >
@@ -81,34 +81,34 @@ export const WorkoutManagement: React.FC<WorkoutManagementProps> = ({ onBack, on
             <p className="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-widest mt-2">Escolha o tipo de programa para gerenciar</p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-8 w-full">
-            <ManagementCard 
-              icon="male" 
-              title="Treino Masculino" 
-              subtitle="Programas Homens" 
+            <ManagementCard
+              icon="male"
+              title="Treino Masculino"
+              subtitle="Programas Homens"
               onClick={() => setCurrentView('male')}
             />
-            <ManagementCard 
-              icon="female" 
-              title="Treino Feminino" 
-              subtitle="Programas Mulheres" 
+            <ManagementCard
+              icon="female"
+              title="Treino Feminino"
+              subtitle="Programas Mulheres"
               onClick={() => setCurrentView('female')}
             />
-            <ManagementCard 
-              icon="home_work" 
-              title="Treino em Casa" 
-              subtitle="Home Fitness" 
+            <ManagementCard
+              icon="home_work"
+              title="Treino em Casa"
+              subtitle="Home Fitness"
               onClick={() => setCurrentView('home')}
             />
-            <ManagementCard 
-              icon="confirmation_number" 
-              title="Treino Cupom" 
-              subtitle="Ofertas Especiais" 
+            <ManagementCard
+              icon="confirmation_number"
+              title="Treino Cupom"
+              subtitle="Ofertas Especiais"
               onClick={() => setCurrentView('coupon')}
             />
-            <ManagementCard 
-              icon="manage_accounts" 
-              title="Personalizado" 
-              subtitle="Configurações VIP" 
+            <ManagementCard
+              icon="manage_accounts"
+              title="Personalizado"
+              subtitle="Configurações VIP"
               onClick={() => setCurrentView('custom')}
             />
           </div>
@@ -119,7 +119,7 @@ export const WorkoutManagement: React.FC<WorkoutManagementProps> = ({ onBack, on
       </main>
 
       <footer className="p-8 text-center border-t border-slate-200 dark:border-white/5">
-        <p className="text-[10px] text-slate-500 uppercase tracking-[0.4em] font-bold">© 2024 Fitness Platform • Gestão de Treinos</p>
+        <p className="text-[10px] text-slate-500 uppercase tracking-[0.4em] font-bold">© 2026 Fitness Platform • Gestão de Treinos</p>
       </footer>
     </div>
   );
@@ -134,7 +134,7 @@ interface ManagementCardProps {
 
 const ManagementCard: React.FC<ManagementCardProps> = ({ icon, title, subtitle, onClick }) => {
   return (
-    <button 
+    <button
       onClick={onClick}
       className="w-full aspect-square flex flex-col items-center justify-center gap-4 bg-card-dark hover:bg-[#333333] text-white rounded-[2rem] shadow-2xl transition-all active:scale-95 group border border-white/5 relative overflow-hidden"
     >

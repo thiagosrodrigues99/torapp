@@ -14,6 +14,7 @@ interface Influencer {
   status: string;
   phone: string;
   avatar_url?: string;
+  commission_per_user: number;
   commission_pending: number;
 }
 
@@ -60,6 +61,7 @@ export const InfluencersManagement: React.FC<InfluencersManagementProps> = ({ on
       const formattedInfluencers: Influencer[] = (influencerProfiles || []).map(inf => {
         const referredUsers = (allUsers || []).filter(u => u.coupon === inf.coupon);
         const paidUsers = referredUsers.filter(u => u.status === 'Ativo').length;
+        const commissionValue = inf.commission_per_user || 35;
 
         return {
           id: inf.id,
@@ -69,7 +71,8 @@ export const InfluencersManagement: React.FC<InfluencersManagementProps> = ({ on
           status: inf.status || 'Ativo',
           phone: inf.phone || '---',
           avatar_url: inf.avatar_url,
-          commission_pending: paidUsers * 35 // Logic: R$ 35 per paid user
+          commission_per_user: commissionValue,
+          commission_pending: paidUsers * commissionValue
         };
       });
 
@@ -104,8 +107,8 @@ export const InfluencersManagement: React.FC<InfluencersManagementProps> = ({ on
     return <CommissionPayment onBack={() => setView('list')} />;
   }
 
-  if (view === 'sales') {
-    return <InfluencerSales onBack={() => setView('list')} />;
+  if (view === 'sales' && selectedInfluencerId) {
+    return <InfluencerSales influencerId={selectedInfluencerId} onBack={() => setView('list')} />;
   }
 
   if (view === 'edit' && selectedInfluencerId) {
@@ -172,17 +175,17 @@ export const InfluencersManagement: React.FC<InfluencersManagementProps> = ({ on
             </div>
             <div>
               <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Período de Análise</h3>
-              <p className="text-sm font-bold text-white">Outubro 2023</p>
+              <p className="text-sm font-bold text-white">Janeiro 2026</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <div className="relative group">
               <select className="appearance-none bg-[#1a1a1a] border border-white/10 rounded-lg pl-4 pr-10 py-2.5 text-xs font-bold text-[#f0f0f0] focus:ring-primary focus:border-primary cursor-pointer w-full md:w-48 transition-all hover:bg-white/5">
-                <option value="2023-10">Outubro 2023</option>
-                <option value="2023-09">Setembro 2023</option>
-                <option value="2023-08">Agosto 2023</option>
-                <option value="2023-07">Julho 2023</option>
-                <option value="2023-06">Junho 2023</option>
+                <option value="2026-01">Janeiro 2026</option>
+                <option value="2025-12">Dezembro 2025</option>
+                <option value="2025-11">Novembro 2025</option>
+                <option value="2025-10">Outubro 2025</option>
+                <option value="2025-09">Setembro 2025</option>
               </select>
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none text-xl">
                 <Icon name="expand_more" />
@@ -256,6 +259,7 @@ export const InfluencersManagement: React.FC<InfluencersManagementProps> = ({ on
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">Cupom</th>
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400 text-center whitespace-nowrap">Status Cupom</th>
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">Telefone</th>
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400 text-center whitespace-nowrap">R$/Usuário</th>
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400 text-center">Comissão Pendente</th>
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400 text-center">Status</th>
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-400 text-right">Ações</th>
@@ -264,7 +268,7 @@ export const InfluencersManagement: React.FC<InfluencersManagementProps> = ({ on
               <tbody className="divide-y divide-white/5">
                 {loading ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
+                    <td colSpan={8} className="px-6 py-12 text-center text-slate-500">
                       <div className="flex flex-col items-center gap-2">
                         <div className="animate-spin size-6 border-2 border-primary border-t-transparent rounded-full"></div>
                         <p className="text-[10px] font-bold uppercase tracking-widest">Carregando influenciadores...</p>
@@ -273,7 +277,7 @@ export const InfluencersManagement: React.FC<InfluencersManagementProps> = ({ on
                   </tr>
                 ) : filteredInfluencers.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-slate-500 italic">
+                    <td colSpan={8} className="px-6 py-12 text-center text-slate-500 italic">
                       Nenhum influenciador encontrado.
                     </td>
                   </tr>
@@ -306,6 +310,11 @@ export const InfluencersManagement: React.FC<InfluencersManagementProps> = ({ on
                       </td>
                       <td className="px-6 py-4">
                         <p className="text-xs text-slate-300">{inf.phone}</p>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="bg-green-500/10 text-green-500 text-sm font-black px-3 py-1 rounded-md">
+                          {inf.commission_per_user.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        </span>
                       </td>
                       <td className="px-6 py-4 text-center">
                         <p className="text-sm font-black text-white">
@@ -342,7 +351,10 @@ export const InfluencersManagement: React.FC<InfluencersManagementProps> = ({ on
                             {inf.commission_pending > 0 ? 'Pagar' : 'Pago'}
                           </button>
                           <button
-                            onClick={() => setView('sales')}
+                            onClick={() => {
+                              setSelectedInfluencerId(inf.id);
+                              setView('sales');
+                            }}
                             className="px-3 py-2 text-[10px] font-bold uppercase bg-white/5 hover:bg-white/10 rounded-lg transition-colors border border-white/5"
                           >
                             Vendas
@@ -364,7 +376,7 @@ export const InfluencersManagement: React.FC<InfluencersManagementProps> = ({ on
 
         <div className="text-center py-6">
           <h1 className="text-2xl font-black text-white uppercase tracking-tight italic mb-2">Painel Administrativo</h1>
-          <p className="text-[10px] text-slate-500 uppercase tracking-[0.4em] font-bold">© 2024 Fitness Platform • Gestão de Dados</p>
+          <p className="text-[10px] text-slate-500 uppercase tracking-[0.4em] font-bold">© 2026 Fitness Platform • Gestão de Dados</p>
         </div>
       </main>
 

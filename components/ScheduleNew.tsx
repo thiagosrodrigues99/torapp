@@ -11,7 +11,7 @@ export const ScheduleNew: React.FC<ScheduleNewProps> = ({ onBack, onConfirm }) =
     <div className="bg-background-dark text-gray-94 min-h-screen flex flex-col font-manrope">
       <header className="sticky top-0 z-50 bg-background-dark/80 backdrop-blur-md px-4 pt-6 pb-2">
         <div className="flex items-center">
-          <button 
+          <button
             onClick={onBack}
             className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-white/10 transition-colors -ml-2"
           >
@@ -29,13 +29,13 @@ export const ScheduleNew: React.FC<ScheduleNewProps> = ({ onBack, onConfirm }) =
               <div className="absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center pointer-events-none">
                 <Icon name="edit" className="text-primary text-xl" />
               </div>
-              <input 
-                className="w-full h-14 rounded-2xl pl-16 pr-12 border border-gray-94/10 bg-input-bg text-gray-94 font-medium placeholder:text-white/20 focus:outline-none focus:border-primary/50" 
-                placeholder="Ex: Musculação, Yoga, etc." 
-                type="text" 
+              <input
+                className="w-full h-14 rounded-2xl pl-16 pr-12 border border-gray-94/10 bg-input-bg text-gray-94 font-medium placeholder:text-white/20 focus:outline-none focus:border-primary/50"
+                placeholder="Ex: Musculação, Yoga, etc."
+                type="text"
               />
-              <button 
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors" 
+              <button
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors"
                 type="button"
               >
                 <Icon name="close" className="text-xl" />
@@ -47,10 +47,10 @@ export const ScheduleNew: React.FC<ScheduleNewProps> = ({ onBack, onConfirm }) =
             <div className="space-y-2">
               <label className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/40 ml-1">Data</label>
               <div className="relative">
-                <input 
-                  className="w-full h-14 rounded-2xl px-4 border border-gray-94/10 bg-input-bg text-gray-94" 
-                  type="date" 
-                  defaultValue="2023-10-05"
+                <input
+                  className="w-full h-14 rounded-2xl px-4 border border-gray-94/10 bg-input-bg text-gray-94"
+                  type="date"
+                  defaultValue="2026-01-28"
                 />
                 <span className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-white/40 flex items-center">
                   <Icon name="calendar_month" className="text-sm" />
@@ -82,9 +82,9 @@ export const ScheduleNew: React.FC<ScheduleNewProps> = ({ onBack, onConfirm }) =
           <div className="space-y-2">
             <label className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/40 ml-1">Local ou Observações</label>
             <div className="relative">
-              <textarea 
-                className="w-full rounded-2xl p-4 border border-gray-94/10 bg-input-bg text-gray-94 resize-none focus:outline-none" 
-                placeholder="Ex: Academia Central, Sala 2..." 
+              <textarea
+                className="w-full rounded-2xl p-4 border border-gray-94/10 bg-input-bg text-gray-94 resize-none focus:outline-none"
+                placeholder="Ex: Academia Central, Sala 2..."
                 rows={4}
               ></textarea>
               <span className="absolute right-4 top-4 pointer-events-none text-white/40">
@@ -96,7 +96,7 @@ export const ScheduleNew: React.FC<ScheduleNewProps> = ({ onBack, onConfirm }) =
       </main>
 
       <footer className="p-6 bg-background-dark/80 backdrop-blur-xl">
-        <button 
+        <button
           onClick={onConfirm}
           className="w-full bg-primary hover:bg-[#c40034] active:scale-[0.98] transition-all h-14 rounded-2xl flex items-center justify-center gap-3 shadow-xl shadow-primary/20"
         >

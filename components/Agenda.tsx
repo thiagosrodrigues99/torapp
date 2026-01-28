@@ -12,7 +12,7 @@ export const Agenda: React.FC<AgendaProps> = ({ onBack, onScheduleClick }) => {
       {/* Top Navigation Bar */}
       <header className="sticky top-0 z-50 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md px-4 pt-6 pb-2">
         <div className="flex items-center justify-between">
-          <div 
+          <div
             onClick={onBack}
             className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-white/10 transition-colors cursor-pointer"
           >
@@ -29,7 +29,7 @@ export const Agenda: React.FC<AgendaProps> = ({ onBack, onScheduleClick }) => {
         {/* Horizontal Calendar Selection */}
         <section className="mt-4 px-4">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-[#f0f0f0] text-base font-bold">Outubro 2023</h2>
+            <h2 className="text-[#f0f0f0] text-base font-bold">Janeiro 2026</h2>
             <Icon name="calendar_month" className="text-primary text-sm" />
           </div>
           <div className="flex gap-3 overflow-x-auto hide-scrollbar pb-2">
@@ -42,13 +42,12 @@ export const Agenda: React.FC<AgendaProps> = ({ onBack, onScheduleClick }) => {
               { day: 'Sáb', date: '07' },
               { day: 'Dom', date: '08' },
             ].map((item, index) => (
-              <button 
+              <button
                 key={index}
-                className={`flex flex-col items-center justify-center min-w-[58px] h-20 rounded-xl border ${
-                  item.active 
-                    ? 'bg-primary shadow-lg shadow-primary/20 border-transparent' 
+                className={`flex flex-col items-center justify-center min-w-[58px] h-20 rounded-xl border ${item.active
+                    ? 'bg-primary shadow-lg shadow-primary/20 border-transparent'
                     : 'bg-white/5 border-white/10'
-                }`}
+                  }`}
               >
                 <span className={`text-xs font-medium uppercase ${item.active ? 'text-white/80' : 'text-white/50'}`}>{item.day}</span>
                 <span className={`text-lg font-bold ${item.active ? 'text-white' : ''}`}>{item.date}</span>
@@ -63,14 +62,13 @@ export const Agenda: React.FC<AgendaProps> = ({ onBack, onScheduleClick }) => {
           <h3 className="text-[#f0f0f0] text-base font-bold mb-3 tracking-tight">Horários Disponíveis</h3>
           <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1">
             {['07:00', '08:00', '09:00', '10:00', '11:00', '12:00'].map((time, index) => {
-               const active = time === '08:00';
-               return (
-                <div key={index} className={`flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-lg px-4 ${
-                  active ? 'bg-primary' : 'bg-white/5 border border-white/10'
-                }`}>
+              const active = time === '08:00';
+              return (
+                <div key={index} className={`flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-lg px-4 ${active ? 'bg-primary' : 'bg-white/5 border border-white/10'
+                  }`}>
                   <p className={`text-sm leading-normal ${active ? 'text-white font-bold' : 'text-[#f0f0f0] font-medium'}`}>{time}</p>
                 </div>
-               );
+              );
             })}
           </div>
         </section>
@@ -134,7 +132,7 @@ export const Agenda: React.FC<AgendaProps> = ({ onBack, onScheduleClick }) => {
 
       {/* Bottom Action Area positioned above BottomNavigation */}
       <div className="fixed bottom-[88px] left-0 right-0 p-4 bg-gradient-to-t from-background-dark via-background-dark to-transparent z-40">
-        <button 
+        <button
           onClick={onScheduleClick}
           className="w-full bg-primary hover:bg-[#c40034] active:scale-95 transition-all h-14 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-primary/30"
         >

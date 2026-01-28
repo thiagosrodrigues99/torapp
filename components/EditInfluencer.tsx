@@ -15,7 +15,8 @@ export const EditInfluencer: React.FC<EditInfluencerProps> = ({ influencerId, on
     username: '',
     phone: '',
     coupon: '',
-    status: 'Ativo'
+    status: 'Ativo',
+    commission_per_user: 35
   });
 
   useEffect(() => {
@@ -38,7 +39,8 @@ export const EditInfluencer: React.FC<EditInfluencerProps> = ({ influencerId, on
         username: data.username || '',
         phone: data.phone || '',
         coupon: data.coupon || '',
-        status: data.status || 'Ativo'
+        status: data.status || 'Ativo',
+        commission_per_user: data.commission_per_user || 35
       });
     } catch (err) {
       console.error('Error fetching influencer:', err);
@@ -58,6 +60,7 @@ export const EditInfluencer: React.FC<EditInfluencerProps> = ({ influencerId, on
           phone: profile.phone,
           coupon: profile.coupon.toUpperCase(),
           status: profile.status,
+          commission_per_user: profile.commission_per_user,
           updated_at: new Date().toISOString()
         })
         .eq('id', influencerId);
@@ -158,7 +161,7 @@ export const EditInfluencer: React.FC<EditInfluencerProps> = ({ influencerId, on
           <section className="bg-card-dark/30 p-8 rounded-2xl border border-white/5">
             <label className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 block">Configurações de Parceiro</label>
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-              <div className="md:col-span-6">
+              <div className="md:col-span-4">
                 <label className="text-[10px] uppercase font-bold text-slate-500 mb-1.5 block ml-1">Cupom Ativo</label>
                 <input
                   className="bg-card-dark border border-white/5 rounded-lg px-4 py-3 text-primary font-black uppercase focus:ring-1 focus:ring-primary focus:border-primary w-full transition-all outline-none"
@@ -168,7 +171,22 @@ export const EditInfluencer: React.FC<EditInfluencerProps> = ({ influencerId, on
                   onChange={(e) => setProfile({ ...profile, coupon: e.target.value })}
                 />
               </div>
-              <div className="md:col-span-6">
+              <div className="md:col-span-4">
+                <label className="text-[10px] uppercase font-bold text-slate-500 mb-1.5 block ml-1">Comissão por Usuário Pago (R$)</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-green-500 font-bold">R$</span>
+                  <input
+                    className="bg-card-dark border border-white/5 rounded-lg pl-12 pr-4 py-3 text-green-500 font-black focus:ring-1 focus:ring-primary focus:border-primary w-full transition-all outline-none"
+                    placeholder="35.00"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={profile.commission_per_user}
+                    onChange={(e) => setProfile({ ...profile, commission_per_user: parseFloat(e.target.value) || 0 })}
+                  />
+                </div>
+              </div>
+              <div className="md:col-span-4">
                 <label className="text-[10px] uppercase font-bold text-slate-500 mb-1.5 block ml-1">Status da Parceria</label>
                 <div className="flex bg-card-dark rounded-lg p-1 border border-white/5 gap-1">
                   <button
