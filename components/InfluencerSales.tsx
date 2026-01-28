@@ -18,7 +18,7 @@ interface InfluencerSalesProps {
 
 export const InfluencerSales: React.FC<InfluencerSalesProps> = ({ influencerId, onBack }) => {
   const [loading, setLoading] = useState(true);
-  const [influencer, setInfluencer] = useState({ full_name: '', coupon: '', commission_per_user: 35 });
+  const [influencer, setInfluencer] = useState({ full_name: '', coupon: '', commission_value: 35, workout_price: 79.90 });
   const [sales, setSales] = useState<Sale[]>([]);
   const [stats, setStats] = useState({
     totalSales: 0,
@@ -39,7 +39,7 @@ export const InfluencerSales: React.FC<InfluencerSalesProps> = ({ influencerId, 
 
       const { data: influencerData, error: influencerError } = await supabase
         .from('profiles')
-        .select('full_name, coupon, commission_per_user')
+        .select('full_name, coupon, commission_per_user, commission_value, workout_price')
         .eq('id', influencerId)
         .single();
 
@@ -47,7 +47,8 @@ export const InfluencerSales: React.FC<InfluencerSalesProps> = ({ influencerId, 
       setInfluencer({
         full_name: influencerData.full_name || '',
         coupon: influencerData.coupon || '',
-        commission_per_user: influencerData.commission_per_user || 35
+        commission_value: influencerData.commission_value || influencerData.commission_per_user || 35,
+        workout_price: influencerData.workout_price || 79.90
       });
 
       // Get all users with this coupon (these are the "sales")
@@ -66,8 +67,8 @@ export const InfluencerSales: React.FC<InfluencerSalesProps> = ({ influencerId, 
       const paidUsers = users.filter(u => u.status === 'Ativo');
       const trialUsers = users.filter(u => u.status === 'Teste Grátis');
 
-      const SUBSCRIPTION_VALUE = 49.90; // Valor da assinatura
-      const COMMISSION_PER_USER = influencerData.commission_per_user || 35; // Comissão por usuário pago
+      const SUBSCRIPTION_VALUE = influencerData.workout_price || 79.90; // Valor dinâmico
+      const COMMISSION_PER_USER = influencerData.commission_value || influencerData.commission_per_user || 35; // Comissão dinâmica
 
       const totalSales = paidUsers.length * SUBSCRIPTION_VALUE;
       const pendingCommission = paidUsers.length * COMMISSION_PER_USER;

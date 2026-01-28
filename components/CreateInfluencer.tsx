@@ -13,6 +13,9 @@ export const CreateInfluencer: React.FC<CreateInfluencerProps> = ({ onBack }) =>
     const [phone, setPhone] = useState('');
     const [password, setPassword] = useState('');
     const [coupon, setCoupon] = useState('');
+    const [workoutPrice, setWorkoutPrice] = useState('79.90');
+    const [commissionValue, setCommissionValue] = useState('35.00');
+    const [pixKey, setPixKey] = useState('');
 
     const handleCreate = async () => {
         if (!fullName || !username || !password || !coupon) {
@@ -35,7 +38,11 @@ export const CreateInfluencer: React.FC<CreateInfluencerProps> = ({ onBack }) =>
                         phone: phone,
                         role: 'influencer',
                         status: 'Ativo',
-                        coupon: coupon.toUpperCase()
+                        coupon: coupon.toUpperCase(),
+                        workout_price: parseFloat(workoutPrice),
+                        commission_value: parseFloat(commissionValue),
+                        commission_per_user: parseFloat(commissionValue), // Mantendo compatibilidade com campo antigo se existir
+                        pix_key: pixKey
                     }
                 }
             });
@@ -103,8 +110,54 @@ export const CreateInfluencer: React.FC<CreateInfluencerProps> = ({ onBack }) =>
                                 </div>
                                 <p className="text-[10px] text-slate-500 mt-2 px-1">Este cupom será usado para rastrear as vendas e calcular as comissões deste influenciador.</p>
                             </div>
+                            <div className="flex flex-col w-full">
+                                <label className="text-gray-700 dark:text-gray-300 text-sm font-medium pb-2">Chave Pix para Recebimento</label>
+                                <input
+                                    value={pixKey}
+                                    onChange={(e) => setPixKey(e.target.value)}
+                                    className="w-full rounded-lg border border-gray-300 dark:border-[#3a3a3a] bg-white dark:bg-[#282828] text-gray-900 dark:text-[#f0f0f0] h-14 placeholder:text-gray-400 dark:placeholder:text-gray-500 p-4 text-base focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                                    placeholder="E-mail, CPF ou Telefone"
+                                    type="text"
+                                />
+                            </div>
                         </div>
                     </div>
+                    <div className="h-4 bg-gray-100 dark:bg-[#1c1c1c] my-6"></div>
+
+                    <div className="px-4">
+                        <h3 className="text-gray-900 dark:text-white text-lg font-bold leading-tight tracking-tight mb-4">Financeiro da Parceria</h3>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="flex flex-col w-full">
+                                <label className="text-gray-700 dark:text-gray-300 text-sm font-medium pb-2">Valor do Treino (R$)</label>
+                                <div className="relative">
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-primary font-bold">R$</span>
+                                    <input
+                                        value={workoutPrice}
+                                        onChange={(e) => setWorkoutPrice(e.target.value)}
+                                        className="w-full rounded-lg border border-gray-300 dark:border-[#3a3a3a] bg-white dark:bg-[#282828] text-gray-900 dark:text-[#f0f0f0] h-14 pl-12 pr-4 text-base focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-bold"
+                                        placeholder="79.90"
+                                        type="number"
+                                        step="0.01"
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex flex-col w-full">
+                                <label className="text-gray-700 dark:text-gray-300 text-sm font-medium pb-2">Comissão (R$)</label>
+                                <div className="relative">
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-green-500 font-bold">R$</span>
+                                    <input
+                                        value={commissionValue}
+                                        onChange={(e) => setCommissionValue(e.target.value)}
+                                        className="w-full rounded-lg border border-gray-300 dark:border-[#3a3a3a] bg-white dark:bg-[#282828] text-gray-900 dark:text-[#f0f0f0] h-14 pl-12 pr-4 text-base focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all font-bold"
+                                        placeholder="35.00"
+                                        type="number"
+                                        step="0.01"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div className="h-4 bg-gray-100 dark:bg-[#1c1c1c] my-6"></div>
                     <div className="px-4">
                         <h3 className="text-gray-900 dark:text-white text-lg font-bold leading-tight tracking-tight mb-4">Credenciais de Acesso</h3>

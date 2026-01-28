@@ -16,7 +16,10 @@ export const EditInfluencer: React.FC<EditInfluencerProps> = ({ influencerId, on
     phone: '',
     coupon: '',
     status: 'Ativo',
-    commission_per_user: 35
+    commission_per_user: 35,
+    workout_price: '79.90',
+    commission_value: '35.00',
+    pix_key: ''
   });
 
   useEffect(() => {
@@ -40,7 +43,10 @@ export const EditInfluencer: React.FC<EditInfluencerProps> = ({ influencerId, on
         phone: data.phone || '',
         coupon: data.coupon || '',
         status: data.status || 'Ativo',
-        commission_per_user: data.commission_per_user || 35
+        commission_per_user: data.commission_per_user || 35,
+        workout_price: data.workout_price?.toString() || '79.90',
+        commission_value: data.commission_value?.toString() || '35.00',
+        pix_key: data.pix_key || ''
       });
     } catch (err) {
       console.error('Error fetching influencer:', err);
@@ -60,7 +66,10 @@ export const EditInfluencer: React.FC<EditInfluencerProps> = ({ influencerId, on
           phone: profile.phone,
           coupon: profile.coupon.toUpperCase(),
           status: profile.status,
-          commission_per_user: profile.commission_per_user,
+          commission_per_user: parseFloat(profile.commission_value) || 0,
+          workout_price: parseFloat(profile.workout_price) || 0,
+          commission_value: parseFloat(profile.commission_value) || 0,
+          pix_key: profile.pix_key,
           updated_at: new Date().toISOString()
         })
         .eq('id', influencerId);
@@ -157,6 +166,18 @@ export const EditInfluencer: React.FC<EditInfluencerProps> = ({ influencerId, on
                 />
               </div>
             </div>
+            <div className="grid grid-cols-1 mt-6">
+              <div>
+                <label className="text-[10px] uppercase font-bold text-slate-500 mb-1.5 block ml-1">Chave Pix para Pagamento</label>
+                <input
+                  className="bg-card-dark border border-white/5 rounded-lg px-4 py-3 text-white focus:ring-1 focus:ring-primary focus:border-primary w-full transition-all outline-none"
+                  placeholder="E-mail, CPF, Telefone ou Aleatória"
+                  type="text"
+                  value={profile.pix_key}
+                  onChange={(e) => setProfile({ ...profile, pix_key: e.target.value })}
+                />
+              </div>
+            </div>
           </section>
           <section className="bg-card-dark/30 p-8 rounded-2xl border border-white/5">
             <label className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 block">Configurações de Parceiro</label>
@@ -172,7 +193,7 @@ export const EditInfluencer: React.FC<EditInfluencerProps> = ({ influencerId, on
                 />
               </div>
               <div className="md:col-span-4">
-                <label className="text-[10px] uppercase font-bold text-slate-500 mb-1.5 block ml-1">Comissão por Usuário Pago (R$)</label>
+                <label className="text-[10px] uppercase font-bold text-slate-500 mb-1.5 block ml-1">Comissão por Usuário (R$)</label>
                 <div className="relative">
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-green-500 font-bold">R$</span>
                   <input
@@ -181,8 +202,23 @@ export const EditInfluencer: React.FC<EditInfluencerProps> = ({ influencerId, on
                     type="number"
                     step="0.01"
                     min="0"
-                    value={profile.commission_per_user}
-                    onChange={(e) => setProfile({ ...profile, commission_per_user: parseFloat(e.target.value) || 0 })}
+                    value={profile.commission_value}
+                    onChange={(e) => setProfile({ ...profile, commission_value: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="md:col-span-4">
+                <label className="text-[10px] uppercase font-bold text-slate-500 mb-1.5 block ml-1">Valor do Treino (R$)</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-primary font-bold">R$</span>
+                  <input
+                    className="bg-card-dark border border-white/5 rounded-lg pl-12 pr-4 py-3 text-white font-black focus:ring-1 focus:ring-primary focus:border-primary w-full transition-all outline-none"
+                    placeholder="79.90"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={profile.workout_price}
+                    onChange={(e) => setProfile({ ...profile, workout_price: e.target.value })}
                   />
                 </div>
               </div>

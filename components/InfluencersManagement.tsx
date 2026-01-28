@@ -45,7 +45,7 @@ export const InfluencersManagement: React.FC<InfluencersManagementProps> = ({ on
       // 1. Fetch all influencers
       const { data: influencerProfiles, error: infError } = await supabase
         .from('profiles')
-        .select('*')
+        .select('*, workout_price, commission_value')
         .eq('role', 'influencer');
 
       if (infError) throw infError;
@@ -58,10 +58,22 @@ export const InfluencersManagement: React.FC<InfluencersManagementProps> = ({ on
 
       if (userError) throw userError;
 
+      // 3. Fetch all payments to subtract from current pending
+      const { data: allPayments, error: payError } = await supabase
+        .from('influencer_payments')
+        .select('influencer_id, amount');
+
+      if (payError) throw payError;
+
       const formattedInfluencers: Influencer[] = (influencerProfiles || []).map(inf => {
         const referredUsers = (allUsers || []).filter(u => u.coupon === inf.coupon);
         const paidUsers = referredUsers.filter(u => u.status === 'Ativo').length;
-        const commissionValue = inf.commission_per_user || 35;
+        const commissionSetting = inf.commission_value || inf.commission_per_user || 35;
+        const totalEarned = paidUsers * commissionSetting;
+
+        const influencerPaidAmount = (allPayments || [])
+          .filter(p => p.influencer_id === inf.id)
+          .reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
 
         return {
           id: inf.id,
@@ -71,8 +83,8 @@ export const InfluencersManagement: React.FC<InfluencersManagementProps> = ({ on
           status: inf.status || 'Ativo',
           phone: inf.phone || '---',
           avatar_url: inf.avatar_url,
-          commission_per_user: commissionValue,
-          commission_pending: paidUsers * commissionValue
+          commission_per_user: commissionSetting,
+          commission_pending: Math.max(0, totalEarned - influencerPaidAmount)
         };
       });
 
@@ -86,7 +98,13 @@ export const InfluencersManagement: React.FC<InfluencersManagementProps> = ({ on
 
       setStats({
         totalCount: formattedInfluencers.length,
-        totalSales: totalSalesCount * 79.90, // Example plan price R$ 79,90
+        totalSales: formattedInfluencers.reduce((acc, curr) => {
+          // Precisamos calcular as vendas por influenciador usando o valor do treino dele
+          const usersCount = (allUsers || []).filter(u => u.coupon === curr.coupon && u.status === 'Ativo').length;
+          const influencerProfile = (influencerProfiles || []).find(p => p.id === curr.id);
+          const price = influencerProfile?.workout_price || 79.90;
+          return acc + (usersCount * price);
+        }, 0),
         pendingCommissions: formattedInfluencers.reduce((acc, curr) => acc + curr.commission_pending, 0)
       });
 
@@ -103,8 +121,16 @@ export const InfluencersManagement: React.FC<InfluencersManagementProps> = ({ on
     inf.username.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  if (view === 'payment') {
-    return <CommissionPayment onBack={() => setView('list')} />;
+  if (view === 'payment' && selectedInfluencerId) {
+    return (
+      <CommissionPayment
+        influencerId={selectedInfluencerId}
+        onBack={() => {
+          setView('list');
+          fetchInfluencers();
+        }}
+      />
+    );
   }
 
   if (view === 'sales' && selectedInfluencerId) {
@@ -341,7 +367,10 @@ export const InfluencersManagement: React.FC<InfluencersManagementProps> = ({ on
                             <Icon name="edit" className="text-lg" />
                           </button>
                           <button
-                            onClick={() => setView('payment')}
+                            onClick={() => {
+                              setSelectedInfluencerId(inf.id);
+                              setView('payment');
+                            }}
                             className={`px-3 py-2 text-[10px] font-black uppercase rounded-lg transition-colors shadow-lg ${inf.commission_pending > 0
                               ? 'bg-green-500 text-white hover:bg-green-600 shadow-green-500/20'
                               : 'bg-white/5 text-slate-500 cursor-not-allowed'
