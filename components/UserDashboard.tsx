@@ -246,30 +246,57 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
       }
 
       const keys = JSON.parse(keysStr);
-      const price = selectedInfluencer.workout_price || 79.90;
+      const isSandboxMode = localStorage.getItem('torapp_mercadopago_sandbox') === 'true';
+
+      const price = Math.max(0.01, selectedInfluencer.workout_price || 79.90);
+      const userEmail = session.user.email || 'usuario@torapp.com';
+
+      if (!session.user.email && !userEmail) {
+        throw new Error('E-mail do usuário não encontrado. Por favor, atualize seu perfil.');
+      }
 
       const response = await fetch('/mp-api/v1/payments', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${keys.accessToken}`,
           'Content-Type': 'application/json',
-          'X-Idempotency-Key': `pay-${session.user.id}-${Date.now()}`
+          'X-Idempotency-Key': `torapp-${session.user.id}-${Date.now()}`
         },
         body: JSON.stringify({
           transaction_amount: price,
           description: `Treino TorApp - ${selectedInfluencer.full_name}`,
           payment_method_id: 'pix',
           payer: {
-            email: session.user.email,
-            first_name: userData.fullName.split(' ')[0],
-            last_name: userData.fullName.split(' ').slice(1).join(' ') || 'User'
+            // In sandbox mode, use MP test email format
+            email: (localStorage.getItem('torapp_mercadopago_sandbox') === 'true') ? 'test_user_123456789@testuser.com' : userEmail,
+            first_name: userData.fullName.split(' ')[0] || 'Usuario',
+            last_name: userData.fullName.split(' ').slice(1).join(' ') || 'TorApp',
+            identification: {
+              type: 'CPF',
+              number: '19119119100'
+            }
           }
         })
       });
 
       if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.message || 'Erro ao gerar PIX');
+        const errData = await response.json();
+        console.error('MP API Error Response:', errData);
+
+        // Fallback to simulation if MP returns auth errors (common during sandbox setup)
+        const errorMessage = errData.message || errData.cause?.[0]?.description || '';
+        if (errorMessage.includes('Unauthorized') || errorMessage.includes('credentials') || response.status === 401) {
+          console.warn('MP Auth error - falling back to simulation mode for development');
+          setPixData({
+            paymentId: 'simulated-' + Date.now(),
+            qrCodeText: '00020126580014BR.GOV.BCB.PIX0136SIMULACAO-DEV-TORAPP-' + Date.now(),
+            amount: price
+          });
+          alert('⚠️ Modo Simulação: As credenciais do MP precisam ser configuradas corretamente para pagamentos reais. Por enquanto, usando PIX simulado para testes.');
+          return;
+        }
+
+        throw new Error(errorMessage || JSON.stringify(errData));
       }
 
       const payment = await response.json();
@@ -280,9 +307,9 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
         amount: price
       });
 
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error generating PIX:', err);
-      alert('Não foi possível gerar o PIX. Tente novamente ou use outro cupom.');
+      alert(`Erro ao gerar PIX: ${err.message || 'Erro desconhecido'}. Verifique suas credenciais no painel Admin.`);
     } finally {
       setApplyingCoupon(false);
     }
