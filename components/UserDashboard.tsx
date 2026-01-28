@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Icon } from './Icon';
 import { BottomNavigation } from './BottomNavigation';
+import { supabase } from '../lib/supabase';
+import { WorkoutCard } from './WorkoutCard';
 
 interface UserDashboardProps {
   onEditProfile: () => void;
@@ -29,7 +31,60 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
 }) => {
   const [waterAmount, setWaterAmount] = useState(1500); // Meta inicial de 1.5L
   const [showGoalModal, setShowGoalModal] = useState(false);
+  const [activePlan, setActivePlan] = useState<{ name: string; category: string } | null>(null);
+  const [loadingPlan, setLoadingPlan] = useState(true);
   const waterGoal = 3000; // Meta de 3L
+
+  React.useEffect(() => {
+    fetchUserPlan();
+  }, []);
+
+  const fetchUserPlan = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('assigned_plan_id, gender')
+        .eq('id', session.user.id)
+        .single();
+
+      if (profileError) throw profileError;
+
+      let planId = profile.assigned_plan_id;
+
+      // If no assigned plan, look for default plan based on gender
+      if (!planId && profile.gender) {
+        const category = profile.gender.charAt(0).toUpperCase() + profile.gender.slice(1);
+        const { data: defaultPlan } = await supabase
+          .from('workout_plans')
+          .select('id')
+          .eq('category', category)
+          .eq('type', 'default')
+          .maybeSingle();
+
+        if (defaultPlan) {
+          planId = defaultPlan.id;
+        }
+      }
+
+      if (planId) {
+        const { data: plan, error: planError } = await supabase
+          .from('workout_plans')
+          .select('id, name, category')
+          .eq('id', planId)
+          .single();
+
+        if (planError) throw planError;
+        setActivePlan(plan);
+      }
+    } catch (err) {
+      console.error('Error fetching user plan:', err);
+    } finally {
+      setLoadingPlan(false);
+    }
+  };
 
   const handleAddWater = () => {
     setWaterAmount(prev => {
@@ -156,32 +211,14 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
         </div>
       </div>
 
-      {/* Workout Card */}
-      <div className="px-4 mt-2">
-        <h3 className="text-lg font-bold leading-tight tracking-tight mb-4">Meu Treino</h3>
-        <div className="relative overflow-hidden rounded-xl bg-white dark:bg-surface-dark border border-slate-100 dark:border-white/5 p-5 shadow-sm">
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <p className="text-xl font-bold">Ficha A: Iniciante</p>
-              <div className="flex flex-wrap gap-2 mt-2">
-                <span className="px-3 py-1 bg-slate-100 dark:bg-white/5 rounded-full text-xs font-medium text-slate-600 dark:text-slate-300">Pernas</span>
-                <span className="px-3 py-1 bg-slate-100 dark:bg-white/5 rounded-full text-xs font-medium text-slate-600 dark:text-slate-300">Glúteos</span>
-              </div>
-            </div>
-            <div className="flex flex-col items-end">
-              <span className="text-primary font-bold text-lg">40%</span>
-              <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Concluído</span>
-            </div>
-          </div>
-          <div className="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full mb-6">
-            <div className="bg-primary h-1.5 rounded-full" style={{ width: '40%' }}></div>
-          </div>
-          <button onClick={onStartWorkout} className="flex items-center justify-center w-full bg-primary hover:bg-primary/90 text-white rounded-lg h-12 font-bold transition-all active:scale-95 shadow-lg shadow-primary/20">
-            <Icon name="play_arrow" className="mr-2" />
-            INICIAR TREINO
-          </button>
-        </div>
-      </div>
+      <WorkoutCard
+        onStartWorkout={onStartWorkout}
+        planName={activePlan?.name}
+        category={activePlan?.category}
+        loading={loadingPlan}
+        onNavigateToAgenda={() => onNavigate('agenda')}
+        progress={0}
+      />
 
       {/* Menu Cards */}
       <div className="px-4 mt-8 space-y-4">

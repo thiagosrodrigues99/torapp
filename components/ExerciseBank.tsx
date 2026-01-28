@@ -27,6 +27,7 @@ export const ExerciseBank: React.FC<ExerciseBankProps> = ({ onBack }) => {
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [newCategory, setNewCategory] = useState('');
   const [gifUrl, setGifUrl] = useState('');
+  const [thumbnailUrl, setThumbnailUrl] = useState('');
   const [uploading, setUploading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -34,34 +35,107 @@ export const ExerciseBank: React.FC<ExerciseBankProps> = ({ onBack }) => {
     fetchExercises();
   }, []);
 
+  const generateThumbnail = (file: File): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+
+      const cleanup = () => {
+        URL.revokeObjectURL(url);
+      };
+
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 200;
+          const scaleSize = MAX_WIDTH / img.width;
+          canvas.width = MAX_WIDTH;
+          canvas.height = img.height * scaleSize;
+
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            cleanup();
+            reject(new Error('Failed to get canvas context'));
+            return;
+          }
+
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          canvas.toBlob((blob) => {
+            cleanup();
+            if (blob) resolve(blob);
+            else reject(new Error('Failed to create blob'));
+          }, 'image/png');
+        } catch (err) {
+          cleanup();
+          reject(err);
+        }
+      };
+
+      img.onerror = () => {
+        cleanup();
+        reject(new Error('Failed to load image for thumbnail'));
+      };
+
+      img.src = url;
+    });
+  };
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
     try {
       setUploading(true);
-      if (!event.target.files || event.target.files.length === 0) {
-        return;
-      }
-      const file = event.target.files[0];
       const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random()}.${fileExt}`;
+      const baseFileName = `${Math.random().toString(36).substring(2)}`;
+      const fileName = `${baseFileName}.${fileExt}`;
       const filePath = `gifs/${fileName}`;
 
+      // 1. Upload Original GIF
       const { error: uploadError } = await supabase.storage
         .from('exercise-gifs')
         .upload(filePath, file);
 
-      if (uploadError) {
-        throw uploadError;
-      }
+      if (uploadError) throw uploadError;
 
-      const { data } = supabase.storage
+      const { data: originalData } = supabase.storage
         .from('exercise-gifs')
         .getPublicUrl(filePath);
 
-      setGifUrl(data.publicUrl);
+      setGifUrl(originalData.publicUrl);
+
+      // 2. Try Thumbnail (with Timeout)
+      const thumbnailPromise = generateThumbnail(file);
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Timeout thumbnail')), 5000)
+      );
+
+      try {
+        const thumbBlob = await Promise.race([thumbnailPromise, timeoutPromise]) as Blob;
+        const thumbPath = `thumbnails/${baseFileName}_thumb.png`;
+
+        const { error: thumbError } = await supabase.storage
+          .from('exercise-gifs')
+          .upload(thumbPath, thumbBlob);
+
+        if (!thumbError) {
+          const { data: thumbData } = supabase.storage
+            .from('exercise-gifs')
+            .getPublicUrl(thumbPath);
+          setThumbnailUrl(thumbData.publicUrl);
+        }
+      } catch (thumbErr) {
+        console.warn('Thumbnail skipped:', thumbErr);
+        setThumbnailUrl(originalData.publicUrl); // Fallback to original
+      }
+
     } catch (error: any) {
-      alert('Erro ao fazer upload: ' + error.message);
+      console.error('Upload error:', error);
+      alert('Erro ao fazer upload: ' + (error.message || 'Erro desconhecido'));
     } finally {
       setUploading(false);
+      // Reset input value to allow re-upload of same file
+      event.target.value = '';
     }
   };
 
@@ -76,7 +150,6 @@ export const ExerciseBank: React.FC<ExerciseBankProps> = ({ onBack }) => {
       if (error) throw error;
       setExercises(data || []);
 
-      // Update categories list with any unique categories found in the DB
       if (data) {
         const uniqueCategories = Array.from(new Set([
           ...categories,
@@ -97,37 +170,44 @@ export const ExerciseBank: React.FC<ExerciseBankProps> = ({ onBack }) => {
       return;
     }
 
+    if (uploading) {
+      alert('Aguarde o upload do GIF terminar.');
+      return;
+    }
+
     setLoading(true);
     try {
+      const payload = {
+        name,
+        category,
+        gif_url: gifUrl,
+        thumbnail_url: thumbnailUrl || gifUrl,
+      };
+
+      let result;
       if (editingId) {
-        const { error } = await supabase
+        result = await supabase
           .from('exercise_bank')
-          .update({
-            name,
-            category,
-            gif_url: gifUrl,
-          })
+          .update(payload)
           .eq('id', editingId);
-        if (error) throw error;
       } else {
-        const { error } = await supabase
+        result = await supabase
           .from('exercise_bank')
-          .insert([{
-            name,
-            category,
-            gif_url: gifUrl,
-          }]);
-        if (error) throw error;
+          .insert([payload]);
       }
+
+      if (result.error) throw result.error;
 
       setName('');
       setCategory('');
       setGifUrl('');
+      setThumbnailUrl('');
       setEditingId(null);
-      fetchExercises();
+      await fetchExercises();
       alert(editingId ? 'Exercício atualizado!' : 'Exercício cadastrado com sucesso!');
     } catch (error: any) {
-      alert('Erro ao salvar: ' + error.message);
+      console.error('Error in handleSave:', error);
+      alert('Erro ao salvar: ' + (error.message || JSON.stringify(error)));
     } finally {
       setLoading(false);
     }
@@ -149,11 +229,12 @@ export const ExerciseBank: React.FC<ExerciseBankProps> = ({ onBack }) => {
     }
   };
 
-  const handleEdit = (ex: Exercise) => {
+  const handleEdit = (ex: any) => {
     setEditingId(ex.id);
     setName(ex.name);
     setCategory(ex.category);
     setGifUrl(ex.gif_url || '');
+    setThumbnailUrl(ex.thumbnail_url || '');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -168,8 +249,8 @@ export const ExerciseBank: React.FC<ExerciseBankProps> = ({ onBack }) => {
   };
 
   const filteredExercises = exercises.filter(ex =>
-    ex.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    ex.category.toLowerCase().includes(searchTerm.toLowerCase())
+    (ex.name && ex.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (ex.category && ex.category.toLowerCase().includes(searchTerm.toLowerCase()))
   );
   return (
     <div className="bg-background-light dark:bg-background-dark text-white min-h-screen font-display">
@@ -309,15 +390,16 @@ export const ExerciseBank: React.FC<ExerciseBankProps> = ({ onBack }) => {
           <div className="px-4 py-6">
             <button
               onClick={handleSave}
-              disabled={loading}
-              className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/20 flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50"
+              disabled={loading || uploading}
+              className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/20 flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50 disabled:grayscale"
             >
               <Icon name={editingId ? 'edit' : 'save'} />
-              {loading ? 'PROCESSANDO...' : editingId ? 'ATUALIZAR EXERCÍCIO' : 'SALVAR NO BANCO'}
+              {loading ? 'PROCESSANDO...' : uploading ? 'AGUARDANDO UPLOAD...' : editingId ? 'ATUALIZAR EXERCÍCIO' : 'SALVAR NO BANCO'}
             </button>
             {editingId && (
               <button
                 onClick={() => {
+                  setThumbnailUrl('');
                   setEditingId(null);
                   setName('');
                   setCategory('');
@@ -387,7 +469,7 @@ export const ExerciseBank: React.FC<ExerciseBankProps> = ({ onBack }) => {
                   }
                   onEdit={() => handleEdit(ex)}
                   onDelete={() => handleDelete(ex.id)}
-                  imageUrl={ex.gif_url}
+                  imageUrl={ex.thumbnail_url || ex.gif_url}
                 />
               ))
             )}

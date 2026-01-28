@@ -212,7 +212,7 @@ export default function App() {
       onNavigate={handleNavigate}
       currentTab={view}
       onSeeAllMedals={() => setView('all-medals')}
-      onStartWorkout={() => setView('workout-selection')}
+      onStartWorkout={() => setView('workout-execution')}
       onRunClick={() => setView('run-monitoring')}
       onRecipesClick={() => setView('recipes-list')}
       onPersonalTrainerClick={() => setView('personal-trainer')}
