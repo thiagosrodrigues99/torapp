@@ -31,7 +31,7 @@ export default function App() {
     // Monitor auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session) {
-        await fetchUserRole(session.user.id);
+        await fetchUserRole(session.user.id, session);
       } else {
         setUserRole(null);
       }
@@ -41,7 +41,7 @@ export default function App() {
     // Check initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        fetchUserRole(session.user.id);
+        fetchUserRole(session.user.id, session);
       } else {
         setLoading(false);
       }
@@ -52,23 +52,45 @@ export default function App() {
     };
   }, []);
 
-  const fetchUserRole = async (userId: string) => {
+  const fetchUserRole = async (userId: string, session?: any) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (error) {
-        console.error('Error fetching role:', error);
-        setUserRole('user'); // Fallback
+        console.error('Error fetching role from profiles:', error);
+        // Fallback to metadata
+        const metadataRole = session?.user?.user_metadata?.role;
+        if (metadataRole) {
+          console.log('Using metadata role fallback:', metadataRole);
+          setUserRole(metadataRole as 'user' | 'admin' | 'influencer');
+        } else {
+          setUserRole('user');
+        }
       } else if (data) {
         setUserRole(data.role as 'user' | 'admin' | 'influencer');
+      } else {
+        // Data is null (row not found), try metadata
+        const metadataRole = session?.user?.user_metadata?.role;
+        if (metadataRole) {
+          console.log('Profile not found, using metadata role:', metadataRole);
+          setUserRole(metadataRole as 'user' | 'admin' | 'influencer');
+        } else {
+          console.warn('Profile not found and no metadata role, defaulting to user');
+          setUserRole('user');
+        }
       }
     } catch (err) {
       console.error('Unexpected error fetching role:', err);
-      setUserRole('user');
+      const metadataRole = session?.user?.user_metadata?.role;
+      if (metadataRole) {
+        setUserRole(metadataRole as 'user' | 'admin' | 'influencer');
+      } else {
+        setUserRole('user');
+      }
     }
   };
 
