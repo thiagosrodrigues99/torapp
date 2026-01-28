@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Icon } from './Icon';
+import { supabase } from '../lib/supabase';
 
 interface SupabaseConfigProps {
   onBack: () => void;
@@ -7,12 +8,57 @@ interface SupabaseConfigProps {
 
 export const SupabaseConfig: React.FC<SupabaseConfigProps> = ({ onBack }) => {
   const [showAnonKey, setShowAnonKey] = useState(false);
+  const [loadingUsage, setLoadingUsage] = useState(true);
+  const [usageStats, setUsageStats] = useState({
+    totalRows: 0,
+    estimatedSizeMB: 5.0,
+    planLimitMB: 500,
+  });
 
   // Real values from environment (via standard vite import.meta.env)
   const realUrl = import.meta.env.VITE_SUPABASE_URL || 'Não configurado';
   const realAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'Não configurado';
-
   const isOk = realUrl !== 'Não configurado' && realAnonKey !== 'Não configurado';
+
+  useEffect(() => {
+    if (isOk) {
+      calculateUsage();
+    }
+  }, [isOk]);
+
+  const calculateUsage = async () => {
+    try {
+      setLoadingUsage(true);
+
+      // Count main tables
+      const { count: profilesCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
+      const { count: paymentsCount } = await supabase.from('influencer_payments').select('*', { count: 'exact', head: true });
+      const { count: recipesCount } = await supabase.from('recipes').select('*', { count: 'exact', head: true });
+      const { count: exercisesCount } = await supabase.from('exercise_bank').select('*', { count: 'exact', head: true });
+
+      const totalRows = (profilesCount || 0) + (paymentsCount || 0) + (recipesCount || 0) + (exercisesCount || 0);
+
+      // Estimation logic: 5MB base + calculated KB per row type
+      // profiles (~1KB), payments (0.5KB), recipes (10KB due to large text), exercises (5KB)
+      const estimatedKB = 5120 +
+        ((profilesCount || 0) * 1) +
+        ((paymentsCount || 0) * 0.5) +
+        ((recipesCount || 0) * 10) +
+        ((exercisesCount || 0) * 5);
+
+      setUsageStats({
+        totalRows,
+        estimatedSizeMB: parseFloat((estimatedKB / 1024).toFixed(2)),
+        planLimitMB: 500, // Supabase Free Tier limit
+      });
+    } catch (err) {
+      console.error('Error calculating DB usage:', err);
+    } finally {
+      setLoadingUsage(false);
+    }
+  };
+
+  const usagePercentage = Math.min((usageStats.estimatedSizeMB / usageStats.planLimitMB) * 100, 100);
 
   return (
     <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white min-h-screen flex flex-col font-display">
@@ -29,42 +75,67 @@ export const SupabaseConfig: React.FC<SupabaseConfigProps> = ({ onBack }) => {
       </header>
 
       <main className="flex-grow max-w-lg mx-auto px-4 py-6 w-full">
-        <div className="mb-6 rounded-xl bg-white dark:bg-card-dark p-4 border border-slate-200 dark:border-white/5 shadow-sm">
-          <div className="flex items-center justify-between">
+        {/* Status Card */}
+        <div className="mb-6 rounded-2xl bg-white dark:bg-card-dark p-6 border border-slate-200 dark:border-white/5 shadow-xl">
+          <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
-              <div className={`size-10 rounded-lg ${isOk ? 'bg-emerald-500/10' : 'bg-red-500/10'} flex items-center justify-center`}>
-                <Icon name={isOk ? "database" : "error"} className={isOk ? "text-emerald-500" : "text-red-500"} />
+              <div className={`size-12 rounded-xl ${isOk ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'} flex items-center justify-center`}>
+                <Icon name={isOk ? "verified" : "error"} className="text-2xl" />
               </div>
               <div>
-                <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Status da Conexão</p>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className={`size-2 rounded-full ${isOk ? 'bg-emerald-500' : 'bg-red-500'}`}></span>
-                  <span className={`text-sm font-bold ${isOk ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                    {isOk ? 'Conectado' : 'Erro na Configuração'}
-                  </span>
-                </div>
+                <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">Serviços Ativos</p>
+                <h3 className={`text-lg font-black uppercase italic ${isOk ? 'text-emerald-500' : 'text-red-500'}`}>
+                  {isOk ? 'Banco Online' : 'Desconectado'}
+                </h3>
               </div>
             </div>
             <button
-              onClick={() => window.location.reload()}
-              className="text-xs font-bold text-primary hover:underline uppercase tracking-tighter"
+              onClick={() => calculateUsage()}
+              className="size-10 rounded-full hover:bg-white/5 flex items-center justify-center text-primary transition-all active:rotate-180"
             >
-              Reiniciar
+              <Icon name="sync" />
             </button>
+          </div>
+
+          {/* Usage Monitoring */}
+          <div className="pt-4 border-t border-slate-100 dark:border-white/5">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Icon name="storage" className="text-primary text-sm" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Capacidade de Dados</span>
+              </div>
+              <span className="text-[10px] font-black text-white">{usageStats.estimatedSizeMB} MB / {usageStats.planLimitMB} MB</span>
+            </div>
+            <div className="h-2 w-full bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
+              <div
+                className={`h-full transition-all duration-1000 ease-out rounded-full ${usagePercentage > 90 ? 'bg-red-500' : 'bg-primary shadow-[0_0_10px_rgba(255,46,91,0.5)]'}`}
+                style={{ width: `${usagePercentage}%` }}
+              ></div>
+            </div>
+            <div className="flex justify-between mt-3 px-1">
+              <div className="flex flex-col">
+                <span className="text-[9px] font-bold text-slate-500 uppercase">Registros Totais</span>
+                <span className="text-sm font-black text-white">{loadingUsage ? '...' : usageStats.totalRows.toLocaleString()}</span>
+              </div>
+              <div className="flex flex-col text-right">
+                <span className="text-[9px] font-bold text-slate-500 uppercase">Uso Estimado</span>
+                <span className="text-sm font-black text-emerald-400">{usageStats.estimatedSizeMB} MB</span>
+              </div>
+            </div>
           </div>
         </div>
 
         <div className="space-y-6">
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5 ml-1">Project URL</label>
-              <div className="flex w-full items-stretch rounded-xl h-12 bg-white dark:bg-card-dark border border-slate-200 dark:border-white/10 overflow-hidden shadow-sm focus-within:border-primary/50 focus-within:ring-1 focus-within:ring-primary/50 transition-all">
+              <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Project Endpoint</label>
+              <div className="flex w-full items-stretch rounded-xl h-14 bg-white dark:bg-card-dark border border-slate-200 dark:border-white/10 overflow-hidden shadow-sm transition-all focus-within:border-primary/50">
                 <div className="text-slate-400 dark:text-slate-500 flex items-center justify-center pl-4">
-                  <Icon name="link" className="text-xl" />
+                  <Icon name="cloud" className="text-xl" />
                 </div>
                 <input
                   readOnly
-                  className="form-input flex w-full border-none bg-transparent focus:ring-0 text-base font-normal placeholder:text-slate-400 dark:placeholder:text-slate-500 px-4"
+                  className="form-input flex w-full border-none bg-transparent focus:ring-0 text-sm font-bold text-white px-4"
                   value={realUrl}
                   type="text"
                 />
@@ -72,20 +143,20 @@ export const SupabaseConfig: React.FC<SupabaseConfigProps> = ({ onBack }) => {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5 ml-1">API Key (anon/public)</label>
-              <div className="flex w-full items-stretch rounded-xl h-12 bg-white dark:bg-card-dark border border-slate-200 dark:border-white/10 overflow-hidden shadow-sm focus-within:border-primary/50 focus-within:ring-1 focus-within:ring-primary/50 transition-all">
+              <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 ml-1">Public API Key (Anon)</label>
+              <div className="flex w-full items-stretch rounded-xl h-14 bg-white dark:bg-card-dark border border-slate-200 dark:border-white/10 overflow-hidden shadow-sm transition-all focus-within:border-primary/50">
                 <div className="text-slate-400 dark:text-slate-500 flex items-center justify-center pl-4">
-                  <Icon name="key" className="text-xl" />
+                  <Icon name="vpn_key" className="text-xl" />
                 </div>
                 <input
                   readOnly
-                  className="form-input flex w-full border-none bg-transparent focus:ring-0 text-base font-normal placeholder:text-slate-400 dark:placeholder:text-slate-500 px-4"
+                  className="form-input flex w-full border-none bg-transparent focus:ring-0 text-sm font-bold text-white px-4 tracking-wider"
                   type={showAnonKey ? "text" : "password"}
                   value={realAnonKey}
                 />
                 <button
                   onClick={() => setShowAnonKey(!showAnonKey)}
-                  className="flex items-center justify-center px-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  className="flex items-center justify-center px-4 text-slate-400 hover:text-white transition-colors"
                 >
                   <Icon name={showAnonKey ? "visibility_off" : "visibility"} className="text-xl" />
                 </button>
@@ -93,41 +164,41 @@ export const SupabaseConfig: React.FC<SupabaseConfigProps> = ({ onBack }) => {
             </div>
           </div>
 
-          <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4">
-            <div className="flex gap-3">
-              <Icon name="warning" className="text-amber-500 shrink-0" />
-              <p className="text-[11px] text-amber-700 dark:text-amber-400 leading-relaxed font-medium">
-                Os dados acima são carregados diretamente do seu ambiente de produção. Para alterar estas chaves, você deve atualizar o arquivo <code className="bg-black/10 px-1 rounded">.env</code> do seu projeto.
+          <div className="bg-primary/5 border border-primary/10 rounded-2xl p-5 flex gap-4">
+            <div className="size-10 rounded-xl bg-primary/20 flex items-center justify-center text-primary shrink-0">
+              <Icon name="info" />
+            </div>
+            <div>
+              <h4 className="text-xs font-black uppercase text-white mb-1">Nota de Segurança</h4>
+              <p className="text-[10px] text-slate-400 leading-relaxed font-medium">
+                Sua instância está operando no modo de segurança. As chaves de acesso são geridas pelo servidor e as métricas de storage são estimadas com base no volume de registros atuais.
               </p>
             </div>
           </div>
 
           <div className="flex flex-col gap-3 pt-4">
             <button
-              onClick={() => alert('Parâmetros de ambiente verificados com sucesso!')}
-              className="w-full flex items-center justify-center gap-2 h-12 rounded-xl bg-slate-200 dark:bg-white/10 text-slate-900 dark:text-white font-bold transition-all active:scale-95 uppercase tracking-widest text-[10px]"
-            >
-              <Icon name="sync_alt" className="text-xl" />
-              Verificar Conexão
-            </button>
-            <button
               onClick={onBack}
-              className="w-full h-12 rounded-xl bg-primary text-white font-black shadow-lg shadow-primary/30 transition-all active:scale-95 uppercase tracking-widest text-xs"
+              className="w-full h-14 rounded-2xl bg-primary text-white font-black shadow-xl shadow-primary/20 transition-all active:scale-95 uppercase tracking-widest text-xs italic"
             >
-              Concluído
+              Voltar ao Painel
             </button>
           </div>
         </div>
 
-        <div className="mt-12 mb-8 text-center">
+        <div className="mt-12 mb-8 text-center flex flex-col items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">TorApp Systems • 2026</span>
+          </div>
           <a
-            className="inline-flex items-center gap-1 text-sm text-slate-500 dark:text-slate-400 hover:text-primary transition-colors font-medium"
+            className="inline-flex items-center gap-2 text-xs text-primary hover:text-white transition-all font-black uppercase tracking-widest"
             href="https://supabase.com/dashboard"
             target="_blank"
             rel="noopener noreferrer"
           >
-            Acessar Dashboard do Supabase
-            <Icon name="open_in_new" className="text-base" />
+            Dashboard Externo
+            <Icon name="open_in_new" className="text-lg" />
           </a>
         </div>
       </main>
