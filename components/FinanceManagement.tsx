@@ -211,9 +211,17 @@ export const FinanceManagement: React.FC<FinanceManagementProps> = ({ onBack }) 
                 className="appearance-none bg-[#1e1e1e] border border-gray-800 rounded-xl px-4 pl-10 h-11 text-sm font-bold text-white focus:ring-2 focus:ring-primary outline-none transition-all cursor-pointer hover:bg-white/5"
               >
                 <option value="2026-01">Janeiro 2026</option>
-                <option value="2025-12">Dezembro 2025</option>
-                <option value="2025-11">Novembro 2025</option>
-                <option value="2025-10">Outubro 2025</option>
+                <option value="2026-02">Fevereiro 2026</option>
+                <option value="2026-03">Março 2026</option>
+                <option value="2026-04">Abril 2026</option>
+                <option value="2026-05">Maio 2026</option>
+                <option value="2026-06">Junho 2026</option>
+                <option value="2026-07">Julho 2026</option>
+                <option value="2026-08">Agosto 2026</option>
+                <option value="2026-09">Setembro 2026</option>
+                <option value="2026-10">Outubro 2026</option>
+                <option value="2026-11">Novembro 2026</option>
+                <option value="2026-12">Dezembro 2026</option>
               </select>
               <div className="absolute left-4 top-1/2 -translate-y-1/2 text-primary pointer-events-none">
                 <Icon name="calendar_today" className="text-sm" />

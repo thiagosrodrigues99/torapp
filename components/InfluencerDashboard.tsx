@@ -147,9 +147,8 @@ export const InfluencerDashboard: React.FC<InfluencerDashboardProps> = ({ onLogo
     const options = [];
     options.push(<option key="all" value="all">Todo o Período</option>);
 
-    const now = new Date();
-    for (let i = 0; i < 6; i++) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    for (let i = 0; i < 12; i++) {
+      const d = new Date(2026, i, 1);
       const value = `${d.getFullYear()}-${d.getMonth()}`;
       const label = d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
       options.push(<option key={value} value={value}>{label.charAt(0).toUpperCase() + label.slice(1)}</option>);

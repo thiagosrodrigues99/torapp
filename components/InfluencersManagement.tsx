@@ -27,20 +27,28 @@ export const InfluencersManagement: React.FC<InfluencersManagementProps> = ({ on
   const [selectedInfluencerId, setSelectedInfluencerId] = useState<string | null>(null);
   const [influencers, setInfluencers] = useState<Influencer[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
   const [stats, setStats] = useState({
     totalCount: 0,
     totalSales: 0,
     pendingCommissions: 0
   });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCoupon, setSelectedCoupon] = useState('all');
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
 
   useEffect(() => {
     fetchInfluencers();
-  }, []);
+  }, [selectedMonth]);
 
   const fetchInfluencers = async () => {
     try {
       setLoading(true);
+      const [year, month] = selectedMonth.split('-').map(Number);
+      const startDate = new Date(year, month - 1, 1).toISOString();
+      const endDate = new Date(year, month, 0, 23, 59, 59).toISOString();
 
       // 1. Fetch all influencers
       const { data: influencerProfiles, error: infError } = await supabase
@@ -50,11 +58,13 @@ export const InfluencersManagement: React.FC<InfluencersManagementProps> = ({ on
 
       if (infError) throw infError;
 
-      // 2. Fetch all users to calculate commissions and sales
+      // 2. Fetch users created in the selected month
       const { data: allUsers, error: userError } = await supabase
         .from('profiles')
-        .select('coupon, status')
-        .eq('role', 'user');
+        .select('coupon, status, created_at')
+        .eq('role', 'user')
+        .gte('created_at', startDate)
+        .lte('created_at', endDate);
 
       if (userError) throw userError;
 
@@ -89,24 +99,7 @@ export const InfluencersManagement: React.FC<InfluencersManagementProps> = ({ on
       });
 
       setInfluencers(formattedInfluencers);
-
-      // Calculate global stats
-      const totalSalesCount = (allUsers || []).filter(u =>
-        u.status === 'Ativo' &&
-        formattedInfluencers.some(inf => inf.coupon === u.coupon)
-      ).length;
-
-      setStats({
-        totalCount: formattedInfluencers.length,
-        totalSales: formattedInfluencers.reduce((acc, curr) => {
-          // Precisamos calcular as vendas por influenciador usando o valor do treino dele
-          const usersCount = (allUsers || []).filter(u => u.coupon === curr.coupon && u.status === 'Ativo').length;
-          const influencerProfile = (influencerProfiles || []).find(p => p.id === curr.id);
-          const price = influencerProfile?.workout_price || 79.90;
-          return acc + (usersCount * price);
-        }, 0),
-        pendingCommissions: formattedInfluencers.reduce((acc, curr) => acc + curr.commission_pending, 0)
-      });
+      updateStats(formattedInfluencers, allUsers, influencerProfiles);
 
     } catch (err) {
       console.error('Error fetching influencers:', err);
@@ -115,11 +108,41 @@ export const InfluencersManagement: React.FC<InfluencersManagementProps> = ({ on
     }
   };
 
-  const filteredInfluencers = influencers.filter(inf =>
-    inf.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    inf.coupon.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    inf.username.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const updateStats = (currentInfluencers: Influencer[], allUsers: any[], influencerProfiles: any[]) => {
+    const filtered = selectedCoupon === 'all'
+      ? currentInfluencers
+      : currentInfluencers.filter(inf => inf.coupon === selectedCoupon);
+
+    setStats({
+      totalCount: filtered.length,
+      totalSales: filtered.reduce((acc, curr) => {
+        const usersCount = (allUsers || []).filter(u => u.coupon === curr.coupon && u.status === 'Ativo').length;
+        const influencerProfile = (influencerProfiles || []).find(p => p.id === curr.id);
+        const price = influencerProfile?.workout_price || 79.90;
+        return acc + (usersCount * price);
+      }, 0),
+      pendingCommissions: filtered.reduce((acc, curr) => acc + curr.commission_pending, 0)
+    });
+  };
+
+  useEffect(() => {
+    if (influencers.length > 0) {
+      // Re-fetch users and profiles to ensure accuracy or use current state if available.
+      // For simplicity here, we'll trigger fetchInfluencers if selectedCoupon changes 
+      // OR better, just update the local filtered stats if the base data is already there.
+      fetchInfluencers();
+    }
+  }, [selectedCoupon]);
+
+  const filteredInfluencers = influencers.filter(inf => {
+    const matchesSearch = inf.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      inf.coupon.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      inf.username.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesCoupon = selectedCoupon === 'all' || inf.coupon === selectedCoupon;
+
+    return matchesSearch && matchesCoupon;
+  });
 
   if (view === 'payment' && selectedInfluencerId) {
     return (
@@ -200,24 +223,58 @@ export const InfluencersManagement: React.FC<InfluencersManagementProps> = ({ on
               <Icon name="calendar_month" />
             </div>
             <div>
-              <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Período de Análise</h3>
-              <p className="text-sm font-bold text-white">Janeiro 2026</p>
+              <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Mês de Referência</h3>
+              <p className="text-sm font-bold text-white">
+                {new Date(parseInt(selectedMonth.split('-')[0]), parseInt(selectedMonth.split('-')[1]) - 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).replace(/^\w/, (c) => c.toUpperCase())}
+              </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="relative group">
-              <select className="appearance-none bg-[#1a1a1a] border border-white/10 rounded-lg pl-4 pr-10 py-2.5 text-xs font-bold text-[#f0f0f0] focus:ring-primary focus:border-primary cursor-pointer w-full md:w-48 transition-all hover:bg-white/5">
-                <option value="2026-01">Janeiro 2026</option>
-                <option value="2025-12">Dezembro 2025</option>
-                <option value="2025-11">Novembro 2025</option>
-                <option value="2025-10">Outubro 2025</option>
-                <option value="2025-09">Setembro 2025</option>
+          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+            <div className="relative group w-full sm:w-auto">
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="appearance-none bg-[#1a1a1a] border border-white/10 rounded-lg pl-3 pr-8 py-2 text-[10px] font-black uppercase text-slate-400 focus:ring-primary focus:border-primary cursor-pointer w-full transition-all hover:bg-white/5"
+              >
+                {[
+                  { val: '2026-01', label: 'JAN 2026' },
+                  { val: '2026-02', label: 'FEV 2026' },
+                  { val: '2026-03', label: 'MAR 2026' },
+                  { val: '2026-04', label: 'ABR 2026' },
+                  { val: '2026-05', label: 'MAI 2026' },
+                  { val: '2026-06', label: 'JUN 2026' },
+                  { val: '2026-07', label: 'JUL 2026' },
+                  { val: '2026-08', label: 'AGO 2026' },
+                  { val: '2026-09', label: 'SET 2026' },
+                  { val: '2026-10', label: 'OUT 2026' },
+                  { val: '2026-11', label: 'NOV 2026' },
+                  { val: '2026-12', label: 'DEZ 2026' }
+                ].map((m) => (
+                  <option key={m.val} value={m.val}>Mês: {m.label}</option>
+                ))}
               </select>
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none text-xl">
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none text-base">
                 <Icon name="expand_more" />
               </span>
             </div>
-            <button className="size-10 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 text-white transition-colors border border-white/5">
+
+            <div className="relative group w-full sm:w-auto">
+              <select
+                value={selectedCoupon}
+                onChange={(e) => setSelectedCoupon(e.target.value)}
+                className="appearance-none bg-[#1a1a1a] border border-white/10 rounded-lg pl-3 pr-8 py-2 text-[10px] font-black uppercase text-primary focus:ring-primary focus:border-primary cursor-pointer w-full transition-all hover:bg-white/5"
+              >
+                <option value="all">Cupom: Todos</option>
+                {Array.from(new Set(influencers.map(inf => inf.coupon))).sort().map(coupon => (
+                  <option key={coupon} value={coupon}>Cupom: {coupon}</option>
+                ))}
+              </select>
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-primary pointer-events-none text-base">
+                <Icon name="expand_more" />
+              </span>
+            </div>
+
+            <button className="size-9 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 text-white transition-colors border border-white/5">
               <Icon name="filter_list" />
             </button>
           </div>

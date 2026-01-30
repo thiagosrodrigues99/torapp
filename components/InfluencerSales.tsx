@@ -223,10 +223,18 @@ export const InfluencerSales: React.FC<InfluencerSalesProps> = ({ influencerId, 
                   <Icon name="calendar_month" />
                 </span>
                 <select className="bg-[#1a1a1a] border-white/5 rounded-lg pl-10 pr-10 py-2 text-xs focus:ring-primary focus:border-primary w-48 text-[#f0f0f0] cursor-pointer hover:bg-[#222] transition-colors appearance-none">
-                  <option defaultValue="jan-2026">Janeiro 2026</option>
-                  <option value="dez-2025">Dezembro 2025</option>
-                  <option value="nov-2025">Novembro 2025</option>
-                  <option value="out-2025">Outubro 2025</option>
+                  <option value="2026-01">Janeiro 2026</option>
+                  <option value="2026-02">Fevereiro 2026</option>
+                  <option value="2026-03">Março 2026</option>
+                  <option value="2026-04">Abril 2026</option>
+                  <option value="2026-05">Maio 2026</option>
+                  <option value="2026-06">Junho 2026</option>
+                  <option value="2026-07">Julho 2026</option>
+                  <option value="2026-08">Agosto 2026</option>
+                  <option value="2026-09">Setembro 2026</option>
+                  <option value="2026-10">Outubro 2026</option>
+                  <option value="2026-11">Novembro 2026</option>
+                  <option value="2026-12">Dezembro 2026</option>
                 </select>
               </div>
             </div>

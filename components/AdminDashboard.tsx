@@ -9,12 +9,13 @@ import { ExerciseBank } from './ExerciseBank';
 import { FinanceManagement } from './FinanceManagement';
 import { MedalsManagement } from './MedalsManagement';
 import { CheckoutManagement } from './CheckoutManagement';
+import { NotificationsManagement } from './NotificationsManagement';
 
 interface AdminDashboardProps {
   onLogout: () => void;
 }
 
-type AdminView = 'main' | 'workout-management' | 'users' | 'finance' | 'integrations' | 'influencers' | 'recipes' | 'exercises' | 'medals' | 'checkout';
+type AdminView = 'main' | 'workout-management' | 'users' | 'finance' | 'integrations' | 'influencers' | 'recipes' | 'exercises' | 'medals' | 'checkout' | 'notifications';
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
   const [view, setView] = useState<AdminView>('main');
@@ -53,6 +54,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
 
   if (view === 'checkout') {
     return <CheckoutManagement onBack={() => setView('main')} />;
+  }
+
+  if (view === 'notifications') {
+    return <NotificationsManagement onBack={() => setView('main')} />;
   }
 
   // Fallback for other unimplemented views
@@ -150,10 +155,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
               onClick={() => setView('medals')}
             />
             <DashboardCard
-              icon="shopping_basket"
-              title="Checkout"
-              subtitle="Oferta & Planos"
-              onClick={() => setView('checkout')}
+              icon="notifications_active"
+              title="Notificações"
+              subtitle="Comunicados em Massa"
+              onClick={() => setView('notifications')}
             />
           </div>
 
