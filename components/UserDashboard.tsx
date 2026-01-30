@@ -50,10 +50,39 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
   });
   const [medals, setMedals] = useState<Medal[]>([]);
   const [earnedMedalIds, setEarnedMedalIds] = useState<string[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   React.useEffect(() => {
     fetchUserPlan();
+    fetchNotifications();
   }, []);
+
+  const fetchNotifications = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setNotifications(data || []);
+
+      // Simulação simples de contagem de notificações novas baseada em localStorage
+      const lastViewed = localStorage.getItem('torapp_last_notif_view');
+      const count = (data || []).filter(n => !lastViewed || new Date(n.created_at) > new Date(lastViewed)).length;
+      setUnreadCount(count);
+    } catch (err) {
+      console.error('Error fetching notifications:', err);
+    }
+  };
+
+  const handleOpenNotifications = () => {
+    setShowNotifications(true);
+    setUnreadCount(0);
+    localStorage.setItem('torapp_last_notif_view', new Date().toISOString());
+  };
 
   const fetchUserPlan = async () => {
     try {
@@ -374,13 +403,26 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
       {/* Top Bar */}
       <div className="sticky top-0 z-50 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md">
         <div className="flex items-center p-4 pb-2 justify-between">
-          <button
-            onClick={onLogout}
-            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-surface-dark/10 dark:bg-surface-dark hover:bg-primary/20 transition-colors"
-            title="Sair"
-          >
-            <Icon name="logout" className="text-primary" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onLogout}
+              className="flex size-10 shrink-0 items-center justify-center rounded-full bg-surface-dark/10 dark:bg-surface-dark hover:bg-primary/20 transition-colors"
+              title="Sair"
+            >
+              <Icon name="logout" className="text-primary" />
+            </button>
+            <button
+              onClick={handleOpenNotifications}
+              className="flex size-10 shrink-0 items-center justify-center rounded-full bg-surface-dark/10 dark:bg-surface-dark hover:bg-primary/20 transition-colors relative"
+            >
+              <Icon name="notifications" className="text-primary" />
+              {unreadCount > 0 && (
+                <span className="absolute top-2 right-2 size-4 bg-primary text-white text-[8px] font-black border-2 border-background-light dark:border-background-dark rounded-full flex items-center justify-center animate-bounce">
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+          </div>
           <h2 className="text-lg font-bold leading-tight tracking-tight flex-1 text-center">Dashboard</h2>
           <div className="flex items-center justify-end">
             <button onClick={onEditProfile} className="text-primary text-sm font-bold leading-normal tracking-wide">Editar Perfil</button>
@@ -621,6 +663,61 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({
 
       {/* Bottom Navigation */}
       <BottomNavigation currentTab={currentTab} onNavigate={onNavigate} />
+
+      {/* Modal de Notificações */}
+      {showNotifications && (
+        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md animate-in fade-in duration-300 flex flex-col justify-end">
+          <div className="w-full h-[85vh] bg-background-light dark:bg-surface-dark rounded-t-[2.5rem] p-6 shadow-2xl relative animate-in slide-in-from-bottom-full duration-500 overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                  <Icon name="campaign" />
+                </div>
+                <h3 className="text-xl font-bold uppercase italic tracking-tight">Comunicados</h3>
+              </div>
+              <button
+                onClick={() => setShowNotifications(false)}
+                className="size-10 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-500 hover:text-primary transition-colors"
+              >
+                <Icon name="close" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
+              {notifications.length === 0 ? (
+                <div className="py-20 text-center space-y-4">
+                  <Icon name="event_note" className="text-64 text-slate-200 dark:text-white/5" />
+                  <p className="text-sm font-medium text-slate-500 uppercase tracking-widest">Nenhuma notificação por enquanto</p>
+                </div>
+              ) : (
+                notifications.map((n) => (
+                  <div key={n.id} className="bg-white dark:bg-white/5 border border-slate-100 dark:border-white/5 rounded-2xl p-5 relative overflow-hidden group">
+                    <div className={`absolute top-0 left-0 w-1 h-full ${n.type === 'info' ? 'bg-blue-500' :
+                        n.type === 'success' ? 'bg-green-500' :
+                          n.type === 'warning' ? 'bg-amber-500' :
+                            'bg-primary'
+                      }`} />
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="text-base font-bold text-slate-900 dark:text-white">{n.title}</h4>
+                      <span className="text-[10px] text-slate-400 font-medium">
+                        {new Date(n.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+                      </span>
+                    </div>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed italic">{n.message}</p>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <button
+              onClick={() => setShowNotifications(false)}
+              className="w-full mt-6 bg-slate-100 dark:bg-white/5 py-4 rounded-xl font-bold text-xs uppercase tracking-widest text-slate-500 hover:text-primary transition-all"
+            >
+              Fechar Painel
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Checkout Overlay */}
       {showCheckout && (
