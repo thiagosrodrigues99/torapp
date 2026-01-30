@@ -20,7 +20,6 @@ export const FinanceManagement: React.FC<FinanceManagementProps> = ({ onBack }) 
   const [currentPeriod, setCurrentPeriod] = useState('2026-01');
   const [stats, setStats] = useState({
     netProfit: 0,
-    trialUsers: 0,
     paidUsers: 0,
     grossRevenue: 0,
     totalCommissions: 0,
@@ -74,7 +73,6 @@ export const FinanceManagement: React.FC<FinanceManagementProps> = ({ onBack }) 
         return true;
       }).length;
 
-      const trialUsers = usersThisMonth.filter(u => u.status === 'Teste Grátis').length;
       const conversionRate = usersThisMonth.length > 0 ? (paidUsers / usersThisMonth.length) * 100 : 0;
 
       // 2. Build Unified Statement (Extrato)
@@ -151,7 +149,6 @@ export const FinanceManagement: React.FC<FinanceManagementProps> = ({ onBack }) 
       // Final stats update
       setStats({
         paidUsers,
-        trialUsers,
         grossRevenue,
         totalCommissions: Math.max(0, totalCommissions),
         netProfit: grossRevenue - totalCommissions,
@@ -277,7 +274,7 @@ export const FinanceManagement: React.FC<FinanceManagementProps> = ({ onBack }) 
           ) : (
             <>
               {/* Stats Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div className="bg-primary rounded-2xl p-6 shadow-xl shadow-primary/10 relative overflow-hidden flex flex-col justify-between h-40">
                   <div className="absolute -right-4 -top-4 opacity-10">
                     <Icon name="account_balance" className="text-8xl" />
@@ -291,19 +288,6 @@ export const FinanceManagement: React.FC<FinanceManagementProps> = ({ onBack }) 
                   <div className="relative z-10 flex items-center gap-1.5 text-white/80 text-[10px] font-bold uppercase">
                     <Icon name="trending_up" className="text-sm" />
                     <span>Lucro real atual</span>
-                  </div>
-                </div>
-
-                <div className="bg-[#1e1e1e] border border-gray-800 rounded-2xl p-6 flex flex-col justify-between h-40">
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em]">Teste Grátis</p>
-                      <Icon name="group" className="text-primary text-xl" />
-                    </div>
-                    <h3 className="text-3xl font-black text-white">{stats.trialUsers}</h3>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-blue-400 text-[10px] font-bold uppercase">
-                    <span>Leads potenciais</span>
                   </div>
                 </div>
 
