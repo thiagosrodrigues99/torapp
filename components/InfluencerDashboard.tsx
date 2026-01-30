@@ -209,36 +209,12 @@ export const InfluencerDashboard: React.FC<InfluencerDashboardProps> = ({ onLogo
             </div>
           </label>
         </div>
-        <div className="grid grid-cols-2 gap-3 px-4 mb-6">
-          <div className="col-span-2 flex flex-1 gap-3 rounded-xl border border-slate-200 dark:border-[#332226] bg-white dark:bg-surface-dark p-4 flex-col shadow-sm">
-            <div className="flex items-center justify-between">
-              <Icon name="group_add" className="text-primary" />
-              <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-1 rounded-full">+12%</span>
-            </div>
-            <div className="flex flex-col gap-1">
-              <h2 className="text-slate-500 dark:text-[#bc9aa3] text-xs font-semibold uppercase tracking-wider">Usuários Cadastrados</h2>
-              <p className="text-2xl font-bold leading-tight">{stats.total}</p>
-            </div>
-          </div>
-          <div className="flex flex-1 gap-3 rounded-xl border border-slate-200 dark:border-[#332226] bg-white dark:bg-surface-dark p-4 flex-col shadow-sm">
-            <Icon name="timer" className="text-amber-500" />
-            <div className="flex flex-col gap-1">
-              <h2 className="text-slate-500 dark:text-[#bc9aa3] text-[10px] font-semibold uppercase tracking-wider">Em Teste Grátis</h2>
-              <p className="text-xl font-bold leading-tight text-amber-500">{stats.trial}</p>
-            </div>
-          </div>
+        <div className="px-4 mb-6">
           <div className="flex flex-1 gap-3 rounded-xl border border-slate-200 dark:border-[#332226] bg-white dark:bg-surface-dark p-4 flex-col shadow-sm">
             <Icon name="check_circle" className="text-emerald-500" />
             <div className="flex flex-col gap-1">
-              <h2 className="text-slate-500 dark:text-[#bc9aa3] text-[10px] font-semibold uppercase tracking-wider">Usuários Pagos</h2>
-              <p className="text-xl font-bold leading-tight text-emerald-500">{stats.paid}</p>
-            </div>
-          </div>
-          <div className="col-span-2 flex flex-1 gap-3 rounded-xl border border-[#332226] bg-[#282828] p-4 flex-col shadow-sm">
-            <Icon name="history_toggle_off" className="text-[#f0f0f0]" />
-            <div className="flex flex-col gap-1">
-              <h2 className="text-slate-500 dark:text-[#bc9aa3] text-[10px] font-semibold uppercase tracking-wider">Teste Grátis Expirado</h2>
-              <p className="text-xl font-bold leading-tight text-[#f0f0f0]">{stats.expired}</p>
+              <h2 className="text-slate-500 dark:text-[#bc9aa3] text-xs font-semibold uppercase tracking-wider">Vendas Realizadas</h2>
+              <p className="text-2xl font-bold leading-tight text-emerald-500">{stats.paid}</p>
             </div>
           </div>
         </div>
